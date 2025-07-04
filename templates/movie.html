@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ details.title if details else "Movie Not Found" }}</title>
+</head>
+<body>
+    <form action="/search" method="post">
+        <label for="search_movie">Search for a Movie:</label>
+        <input type="text" name="search_movie" placeholder="e.g., Inception" required>
+        <button type="submit">Search</button>
+    </form>
+    {% if details %}
+        <h1>{{ details.title }}</h1>
+        <strong>Ratings: {{details.vote_average}}</strong>
+        <br>
+        <strong>Genres:</strong>
+        <p>{{ details.genres | join(', ') }}</p>
+
+        <strong>Overview:</strong>
+        <p>{{ details.overview | join(' ')}}</p>
+
+        <strong>Cast & Crew:</strong>
+        <p>{{ details.cast | join(', ') }}</p>
+        <p>{{ details.crew | join(', ') }}</p>
+
+    {% else %}
+        <h2>Movie not found!</h2>
+    {% endif %}
+
+    <h3>Recommendations:</h3>
+    {% for recommendation in recommended %}
+        <ul>
+            <li>
+                <p>
+                    <a href="/movie/{{recommendation}}">{{recommendation}}</a>
+                </p>
+            </li>
+        </ul>
+    {% endfor %}
+</body>
+</html>

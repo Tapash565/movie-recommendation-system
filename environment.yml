@@ -1,0 +1,27 @@
+name: venv
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - pip
+  - fastapi
+  - uvicorn
+  - numpy
+  - pandas
+  - scikit-learn
+  - scipy
+  - nltk
+  - ipykernel
+  - jupyter
+  - pydantic
+  - python-dotenv
+
+  - pip:
+      - fastapi-cli
+      - email-validator
+      - python-multipart
+      - rapidfuzz
+      - rich
+      - tqdm
