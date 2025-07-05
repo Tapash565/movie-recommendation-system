@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-import pickle
+import joblib
 from typing import Optional
 from pathlib import Path
 import pandas as pd
@@ -17,9 +17,12 @@ from nltk.stem import WordNetLemmatizer
 from urllib.parse import unquote
 
 
-df = pickle.load(open('movie_list.pkl', 'rb'))
-top_indices = pickle.load(open('top_indices.pkl', 'rb'))
-distances = pickle.load(open('top_distances.pkl', 'rb'))
+try:
+    df = joblib.load('movie_list.pkl')
+    top_indices = joblib.load('top_indices.pkl')
+    distances = joblib.load('top_distances.pkl')
+except Exception as e:
+    print("Failed to load joblib files:", e)
 
 df['title_cleaned'] = df['title'].str.strip().str.lower()
 
