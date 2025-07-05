@@ -12,6 +12,8 @@ import pandas as pd
 from difflib import SequenceMatcher
 import re
 from rapidfuzz import fuzz
+import nltk
+nltk.download('wordnet')
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from urllib.parse import unquote
