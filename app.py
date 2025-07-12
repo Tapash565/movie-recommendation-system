@@ -13,17 +13,20 @@ from urllib.parse import unquote
 
 def recommend(movie, df, top_indices, top_distances, threshold=0):
     movie = movie.strip()
-    if movie not in df['title'].values:
+    
+    match = df[df['title'].str.lower() == movie.lower()]
+    if match.empty:
         return f"'{movie}' not found in the database!"
 
-    movie_index = df[df['title'] == movie].index[0]
-    similar_ids = top_indices[movie_index][1:]  # skip the movie itself
-    scores = 1 - top_distances[movie_index][1:]  # convert distance to similarity
+    movie_index = match.index[0]  # this is now integer index
+
+    similar_ids = top_indices[movie_index][1:]
+    scores = 1 - top_distances[movie_index][1:]
 
     recommendations = [
-        df.iloc[i].title
+        df.iloc[i]['title']
         for i, score in zip(similar_ids, scores)
-        if score >= threshold
+        if i < len(df) and score >= threshold
     ]
     return recommendations
 
