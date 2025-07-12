@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
-    <title>Search Movie</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Movie Recommendation - Home</title>
 </head>
 <body>
-    <form action="/search" method="post">
-        <label for="search_movie">Search for a Movie:</label>
-        <input type="text" name="search_movie" placeholder="e.g., Inception" required>
-        <button type="submit">Search</button>
-    </form>
+    <div class="container">
+        <h1 class="main-title">Movie Recommendation System</h1>
+        <form class="search-form" action="/search" method="post">
+            <input type="text" name="search_movie" placeholder="Search for a movie..." required>
+            <button type="submit">Search</button>
+        </form>
+    </div>
 </body>
 </html>

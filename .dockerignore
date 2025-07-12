@@ -1,0 +1,28 @@
+# Ignore Python cache and test files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore data and config files
+Data/
+*.ini
+
+# Ignore git and VSCode files
+.git/
+.gitattributes
+.gitignore
+.vscode/
+
+# Ignore test files
+pytest.ini
+test*
+
+# Ignore Docker build cache
+*.log
+
+*.ipynb

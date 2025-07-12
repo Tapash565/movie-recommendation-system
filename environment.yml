@@ -17,6 +17,7 @@ dependencies:
   - jupyter
   - pydantic
   - python-dotenv
+  - pytest
 
   - pip:
       - fastapi-cli

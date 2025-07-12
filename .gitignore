@@ -137,3 +137,5 @@ dmypy.json
 # Dataset and notebook files
 Data/
 *.ipynb
+.vscode/
+
