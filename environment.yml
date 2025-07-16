@@ -18,6 +18,7 @@ dependencies:
   - pydantic
   - python-dotenv
   - pytest
+  - itsdangerous
 
   - pip:
       - fastapi-cli

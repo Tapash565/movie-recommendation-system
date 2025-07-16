@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <header>
+        <h2>🎬 MovieRec</h2>
+        <nav class="nav-links">
+            <a href="/">Home</a>
+            <a href="#about">About</a>
+            <a href="#recommendations">Recommendations</a>
+            <a href="#contact">Contact</a>
+            <button class="btnLogin">Login</button>
+        </nav>
+    </header>
     <div class="container">
         <form class="search-form" action="/search" method="post">
             <input type="text" name="search_movie" placeholder="Search for a movie..." required>

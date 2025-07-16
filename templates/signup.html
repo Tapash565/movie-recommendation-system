@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Sign Up</title>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <h2 class="logo">🎬 MovieRec</h2>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                {% if not request.session.get('user') %}
+                <li><a href="/login">Login</a></li>
+                {% else %}
+                <li><a href="/logout">Logout</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </header>
+    <section class="form-section">
+        <div class="container signup-container">
+            <h1 style="text-align:center; color:#4f8cff;">Sign Up</h1>
+            <form action="/signup" method="post" class="signup-form">
+                <input type="text" name="username" placeholder="Username" required class="input-field"><br>
+                <input type="password" name="password" placeholder="Password" required class="input-field"><br>
+                <button type="submit" class="btnSignup">Sign Up</button>
+            </form>
+            <p style="text-align:center; color:#b3b3b3; margin-top: 18px; font-size:0.98rem;">Already have an account? <a href="/login" style="color:#4f8cff;">Login</a></p>
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+        </div>
+    <style>
+        .signup-container {
+            max-width: 400px;
+            margin: 40px auto;
+            background: #18181b;
+            border-radius: 10px;
+            box-shadow: 0 2px 16px 0 #00000033;
+            padding: 32px 32px 24px 32px;
+        }
+        .signup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .input-field {
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #4f8cff;
+            background: #23272f;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .btnSignup {
+            background: #4f8cff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btnSignup:hover {
+            background: #2563eb;
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 12px;
+        }
+    </style>
+    </section>
+</body>
+</html>

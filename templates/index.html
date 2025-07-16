@@ -7,12 +7,49 @@
     <title>Movie Recommendation - Home</title>
 </head>
 <body>
-    <div class="container">
-        <h1 class="main-title">Movie Recommendation System</h1>
-        <form class="search-form" action="/search" method="post">
-            <input type="text" name="search_movie" placeholder="Search for a movie..." required>
-            <button type="submit">Search</button>
-        </form>
-    </div>
+    <header>
+        <div class="navbar">
+            <h2 class="logo">🎬 MovieRec</h2>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#recommendations">Recommendations</a></li>
+                <li><a href="#contact">Contact</a></li>
+                {% if not user %}
+                <li><a href="/login" class="btnLogin" style="text-decoration:none;">Login</a></li>
+                {% else %}
+                <li><a href="/logout" class="btnLogin" style="text-decoration:none;">Logout</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </header>
+    <section class="hero">
+        <div class="container">
+            <h1 class="main-title">Find Your Next Favorite Movie</h1>
+            <p class="subtitle">Discover, search, and get recommendations for the best movies!</p>
+            <form class="search-form" action="/search" method="post">
+                <input type="text" name="search_movie" placeholder="Search for a movie..." required>
+                <button type="submit">Search</button>
+            </form>
+        </div>
+    </section>
+    <section id="about" class="info-section">
+        <div class="container">
+            <h2>About</h2>
+            <p>This movie recommendation system helps you find movies you love, explore new genres, and get personalized suggestions based on your interests.</p>
+        </div>
+    </section>
+    <section id="recommendations" class="info-section">
+        <div class="container">
+            <h2>Recommendations</h2>
+            <p>Try searching for a movie to see recommendations tailored for you!</p>
+        </div>
+    </section>
+    <section id="contact" class="info-section">
+        <div class="container">
+            <h2>Contact</h2>
+            <p>Questions or feedback? <a href="mailto:info@movierec.com">info@movierec.com</a></p>
+        </div>
+    </section>
 </body>
 </html>

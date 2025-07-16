@@ -1,37 +1,23 @@
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import joblib
-from difflib import SequenceMatcher
 import re
+from difflib import SequenceMatcher
 from rapidfuzz import fuzz
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from urllib.parse import unquote
-
-def recommend(movie, df, top_indices, top_distances, threshold=0):
-    movie = movie.strip()
-    
-    match = df[df['title'].str.lower() == movie.lower()]
-    if match.empty:
-        return f"'{movie}' not found in the database!"
-
-    movie_index = match.index[0]  # this is now integer index
-
-    similar_ids = top_indices[movie_index][1:]
-    scores = 1 - top_distances[movie_index][1:]
-
-    recommendations = [
-        df.iloc[i]['title']
-        for i, score in zip(similar_ids, scores)
-        if i < len(df) and score >= threshold
-    ]
-    return recommendations
+import hashlib
 
 lemmatizer = WordNetLemmatizer()
 
+def tokenize_and_lemmatize(text):
+    tokens = re.findall(r'\w+', text.lower())
+    return [lemmatizer.lemmatize(token) for token in tokens]
 
 def get_synonyms(word):
     synonyms = set()
@@ -40,15 +26,27 @@ def get_synonyms(word):
             synonyms.add(lemma.name().lower())
     return synonyms
 
-def tokenize_and_lemmatize(text):
-    tokens = re.findall(r'\w+', text.lower())
-    return [lemmatizer.lemmatize(token) for token in tokens]
-
 def get_popularity(title):
     try:
         return float(df[df['title'] == title]['popularity'].values[0])
     except Exception:
         return 0
+
+def recommend(movie, df, top_indices, top_distances, threshold=0):
+    movie = movie.strip().lower()
+    # No lemmatization, just lowercase match
+    match = df[df['title'].str.lower() == movie]
+    if match.empty:
+        return [f"'{movie}' not found in the database!"]
+    movie_index = match.index[0]
+    similar_ids = top_indices[movie_index][1:]
+    scores = 1 - top_distances[movie_index][1:]
+    recommendations = [
+        df.iloc[i]['title']
+        for i, score in zip(similar_ids, scores)
+        if i < len(df) and score >= threshold
+    ]
+    return recommendations
 
 def search(query, df, max_results=20):
     query = query.strip().lower()
@@ -64,7 +62,6 @@ def search(query, df, max_results=20):
         prefix_match_bonus = 0
         prefix_matched = False
 
-        # Prefix match logic: boost score if any title token starts with any query token
         for token in title_tokens:
             for q in query_tokens:
                 if q and token.startswith(q):
@@ -101,6 +98,8 @@ def search(query, df, max_results=20):
     top_matches.sort(key=lambda x: get_popularity(x[0]), reverse=True)
     return [title for title, score in top_matches]
 
+
+
 try:
     df = joblib.load('movie_list.pkl')
     top_indices = joblib.load('top_indices.pkl')
@@ -108,26 +107,70 @@ try:
 except Exception as e:
     print("Failed to load joblib files:", e)
 
+df['tokens_lemmas'] = df['title'].str.lower().apply(tokenize_and_lemmatize)
 
-# Clean and index for fast lookup
-df['title_cleaned'] = df['title'].str.strip().str.lower()
-df.set_index('title_cleaned', inplace=True)
-df.drop_duplicates(subset='title', inplace=True)
-
-# Precompute tokenized/lemmatized titles for search optimization
-def _precompute_tokens_lemmas(title):
-    return tokenize_and_lemmatize(str(title))
-
-df['tokens_lemmas'] = df['title'].str.lower().apply(_precompute_tokens_lemmas)
 
 app = FastAPI()
-
-app.mount("/static",StaticFiles(directory="static"),name='static')
+app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
+app.mount("/static", StaticFiles(directory="static"), name='static')
 templates = Jinja2Templates(directory="templates")
 
-@app.get('/',response_class=HTMLResponse)
-async def home(request : Request):
-    return templates.TemplateResponse(request,'index.html',{'request': request})
+users = {"admin": hashlib.sha256("admin".encode()).hexdigest()}
+@app.get('/signup', response_class=HTMLResponse)
+async def signup_get(request: Request):
+    return templates.TemplateResponse(request, 'signup.html', {'request': request, 'error': None})
+
+@app.post('/signup', response_class=HTMLResponse)
+async def signup_post(request: Request, username: str = Form(...), password: str = Form(...)):
+    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+    if username in users:
+        error = 'Username already exists.'
+        return templates.TemplateResponse(request,'signup.html', {'request': request, 'error': error})
+    users[username] = hashed_pw
+    request.session['user'] = username
+    return RedirectResponse(url='/', status_code=303)
+
+@app.post('/api/recommend')
+async def api_recommend(movie: str = Form(...)):
+    recs = recommend(movie, df.reset_index(), top_indices, distances)
+    return JSONResponse({"recommendations": recs})
+
+@app.post('/api/search')
+async def api_search(search_movie: str = Form(...)):
+    result = search(search_movie, df)
+    return JSONResponse({"search_result": result, "not_found": not bool(result)})
+
+@app.get('/login', response_class=HTMLResponse)
+async def login_get(request: Request):
+    return templates.TemplateResponse(request, 'login.html', {'request': request, 'error': None})
+
+@app.post('/login', response_class=HTMLResponse)
+async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
+    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+    if username in users and users[username] == hashed_pw:
+        request.session['user'] = username
+        return RedirectResponse(url='/', status_code=303)
+    else:
+        error = 'Invalid username or password.'
+        return templates.TemplateResponse(request, 'login.html', {'request': request, 'error': error})
+
+@app.get('/logout')
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url='/', status_code=303)
+
+@app.post('/api/authenticate')
+async def api_authenticate(username: str = Form(...), password: str = Form(...)):
+    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+    if username in users and users[username] == hashed_pw:
+        return JSONResponse({"authenticated": True})
+    else:
+        return JSONResponse({"authenticated": False})
+
+@app.get('/', response_class=HTMLResponse)
+async def home(request: Request):
+    user = request.session.get('user')
+    return templates.TemplateResponse(request, 'index.html', {'request': request, 'user': user})
 
 @app.post('/search', response_class=HTMLResponse)
 async def search_movie(request: Request, search_movie: str = Form(...)):
@@ -148,21 +191,18 @@ async def not_found_handler(request: Request, exc: HTTPException):
 @app.get('/movie/{title}', response_class=HTMLResponse)
 async def movie_detail(request: Request, title: str):
     decoded_title = unquote(title).strip().lower()
-    if decoded_title in df.index:
-        details = df.loc[decoded_title].to_dict()
-        # Ensure fields that must be lists are lists, not floats (NaN)
+    match = df[df['title'].str.lower() == decoded_title]
+    if not match.empty:
+        details = match.iloc[0].to_dict()
+        original_title = str(details.get('title', title))
         for field in ['cast', 'crew', 'genres']:
             if not isinstance(details.get(field), list):
                 details[field] = []
         if not isinstance(details.get('overview'), list):
             details['overview'] = ""
-        # Use the original title for recommendations
-        original_title = str(df.loc[decoded_title, 'title'])
-
-
     else:
         raise HTTPException(status_code=404, detail="Movie not found")
-    recommended_movies = recommend(original_title, df.reset_index(), top_indices, distances)
+    recommended_movies = recommend(original_title, df, top_indices, distances)
     return templates.TemplateResponse(request, 'movie.html', {
         'request': request,
         'title': original_title,
