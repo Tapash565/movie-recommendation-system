@@ -7,22 +7,13 @@ This document outlines the structure of the Movie Recommendation System deployme
 ```
 movie_recommendation_system_deployment/
 │
-├── app.py                          # Main FastAPI application
+├── app.py                          # Main Streamlit application
 ├── requirements.txt                # Python dependencies
 ├── Dockerfile                      # Docker configuration
-├── test_app.py                    # Test suite
+├── test_app.py                    # Test suite (pytest)
 │
-├── templates/                      # HTML Templates (Jinja2)
-│   ├── index.html                  # Homepage
-│   ├── login.html                  # Login page
-│   ├── signup.html                 # Signup page
-│   ├── search.html                 # Search results page
-│   ├── movie.html                  # Movie details page
-│   └── movie_not_found.html        # 404 error page
-│
-├── static/                         # Static Assets
-│   ├── style.css                   # Main stylesheet
-│   └── api.js                      # JavaScript API client
+├── .vscode/                        # VS Code configuration
+│   └── tasks.json                  # Build tasks (Run Streamlit, Run Tests)
 │
 ├── Data/                           # Movie datasets
 │   ├── tmdb_5000_credits.csv
@@ -37,111 +28,106 @@ movie_recommendation_system_deployment/
 └── Movie_Recommendation_NLP.ipynb  # Jupyter notebook (model training)
 ```
 
-## 🎯 API Endpoints
+## 🎯 Application Features
 
-### HTML Endpoints (Server-Side Rendered)
-- `GET /` - Homepage
-- `GET /login` - Login page
-- `POST /login` - Login form submission
-- `GET /signup` - Signup page
-- `POST /signup` - Signup form submission
-- `GET /logout` - Logout user
-- `POST /search` - Search movies (form submission)
-- `GET /movie/{title}` - Movie details page
+### Streamlit UI Components
+- **Sidebar Authentication** - Login/Signup forms with session state management
+- **Search Interface** - Real-time movie search with results display
+- **Movie Details** - Comprehensive movie information display
+- **Recommendations** - Interactive recommendation list
+- **Navigation** - Button-based navigation between movies
 
-### JSON API Endpoints
-- `POST /api/search` - Search movies (JSON)
-- `POST /api/recommend` - Get movie recommendations (JSON)
-- `GET /api/movie/{title}` - Get movie details (JSON)
-- `POST /api/authenticate` - Authenticate user (JSON)
+### User Features
+- User authentication (Login/Signup)
+- Movie search functionality
+- Detailed movie information view
+- Personalized movie recommendations
+- Sample movies on homepage
+- Session persistence
 
-## 🎨 Frontend Structure
+## 🎨 UI Structure
 
-### Templates (`templates/`)
-All HTML templates use Jinja2 templating engine and are server-side rendered.
+### Main Components
 
-**Key Features:**
-- Responsive design with dark theme
-- Consistent navigation across all pages
-- Form-based interactions with server-side processing
-- Error handling and user feedback
+**Sidebar:**
+- Welcome message (when logged in)
+- Login/Signup forms
+- Logout button
 
-### Static Assets (`static/`)
+**Main Content:**
+- Page title and search bar
+- Search results grid (3 columns)
+- Selected movie details (2-column layout):
+  - Left: Movie overview, release info, budget, revenue, cast, genres, etc.
+  - Right: Recommendations list
+- Sample movies display (homepage)
 
-#### `style.css`
-Organized CSS with sections:
-1. Login & Authentication Styles
-2. Hero Section & Homepage
-3. Global Styles & Reset
-4. Navigation & Header
-5. Container & Layout
-6. Search Forms
-7. Movie Details & Content
-8. Recommendations & Lists
-
-**Color Scheme:**
-- Primary: `#4f8cff` (Blue)
-- Accent: `#a3e635` (Green)
-- Background: `#181c24` (Dark)
-- Surface: `#23283a` (Dark Gray)
-- Text: `#f3f3f3` (Light Gray)
-
-#### `api.js`
-JavaScript API client for client-side interactions:
-- `searchMovies(query)` - Search for movies
-- `getRecommendations(movie)` - Get recommendations
-- `getMovieDetails(title)` - Get movie details (JSON)
-- `authenticate(username, password)` - Authenticate user
-- `logout()` - Logout user
+**Styling:**
+- Custom CSS for movie cards
+- Responsive layout
+- Clean, modern design
+- Interactive buttons
 
 ## 🔧 Backend Structure
 
 ### `app.py`
-FastAPI application with:
-- Session-based authentication
+Streamlit application with:
+- Session state management for user authentication
 - FAISS vector store for recommendations
 - Movie search functionality
-- Template rendering for HTML pages
-- JSON API endpoints
+- Interactive UI components
+- Caching with `@st.cache_resource` and `@st.cache_data`
 
 **Key Functions:**
-- `recommend(movie, df, k=5)` - Get movie recommendations
+- `load_model()` - Load FAISS retriever (cached)
+- `load_data()` - Load movie dataframe (cached)
+- `recommend(movie, df, retriever, k=5)` - Get movie recommendations
 - `search(query, df)` - Search movies by title
+- `get_movie_details(title, df)` - Get detailed movie information
+- `format_number(value)` - Format numbers with commas
+- `format_float(value, decimals=1)` - Format float values
 
 ### Data Flow
-1. User submits search/recommendation request
-2. FastAPI processes request
+1. User interacts with Streamlit UI
+2. Input triggers Python function execution
 3. FAISS vector store retrieves similar movies
-4. Results rendered as HTML or returned as JSON
+4. Results displayed in Streamlit components
+5. Session state updated for navigation
 
 ## 🚀 Usage
 
 ### Running the Application
 ```bash
-python app.py
+streamlit run app.py
 ```
 
-The application will be available at `http://localhost:8000`
+The application will be available at `http://localhost:8501`
 
-### Using the JSON API
-```javascript
-// Example: Search for movies
-const results = await searchMovies("Inception");
-console.log(results.search_result);
+### Running with VS Code Task
+Press `Ctrl+Shift+B` to run the default build task, which will:
+1. Start the Streamlit server
+2. Automatically open your browser to `http://127.0.0.1:8501`
 
-// Example: Get recommendations
-const recs = await getRecommendations("Inception");
-console.log(recs.recommendations);
+### Running Tests
+```bash
+pytest -v test_app.py
+```
 
-// Example: Get movie details
-const movie = await getMovieDetails("Inception");
-console.log(movie.details);
+Or use the VS Code task: "Run Tests"
+
+## 🐳 Docker Deployment
+
+Build and run the Docker container:
+```bash
+docker build -t movie-recommender .
+docker run -p 8501:8501 movie-recommender
 ```
 
 ## 📝 Notes
 
-- The application uses both server-side rendering (HTML) and JSON API endpoints
-- Session management is handled via FastAPI's SessionMiddleware
-- Movie data is loaded from `movie_list.pkl` on startup
-- FAISS index is loaded from `movie_recommendation_faiss/` directory
-- All templates include the API JavaScript client for potential client-side enhancements
+- The application uses Streamlit's session state for user authentication
+- Movie data is loaded once and cached for performance
+- FAISS index is loaded on startup from `movie_recommendation_faiss/` directory
+- All UI is generated by Streamlit components (no separate HTML/CSS/JS files)
+- Interactive navigation is handled via session state and `st.rerun()`
+- The app supports both search-based and recommendation-based movie discovery

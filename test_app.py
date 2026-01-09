@@ -1,58 +1,82 @@
-from fastapi.testclient import TestClient
-from app import app
+import pytest
+import joblib
+from app import recommend, search, get_movie_details, format_number, format_float
 
-client = TestClient(app)
+# Load the dataframe for testing
+@pytest.fixture
+def df():
+    try:
+        return joblib.load('movie_list.pkl')
+    except Exception as e:
+        pytest.skip(f"Failed to load movie data: {e}")
 
-def test_homepage():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "MovieRec" in response.text
+@pytest.fixture
+def retriever():
+    try:
+        from langchain_community.vectorstores import FAISS
+        from langchain_huggingface import HuggingFaceEmbeddings
+        embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
+        vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
+        return vectorstore.as_retriever(
+            search_type="similarity",
+            search_kwargs={"fetch_k": 30}
+        )
+    except Exception as e:
+        pytest.skip(f"Failed to load model: {e}")
 
-def test_search_found():
-    response = client.post("/search", data={"search_movie": "Inception"})
-    assert response.status_code == 200
-    assert "Inception" in response.text
+def test_search_found(df):
+    """Test searching for a movie that exists"""
+    results = search("Inception", df)
+    assert len(results) > 0
+    assert any("Inception" in str(result) for result in results)
 
-def test_search_not_found():
-    response = client.post("/search", data={"search_movie": "asdkfjhasdkjfhakjsdhf"})
-    assert response.status_code == 200
-    assert "not_found" in response.text or "Movie not found" in response.text
+def test_search_not_found(df):
+    """Test searching for a movie that doesn't exist"""
+    results = search("asdkfjhasdkjfhakjsdhf", df)
+    assert len(results) == 0
 
-def test_movie_detail_found():
-    response = client.get("/movie/Inception")
-    assert response.status_code == 200
-    assert "Inception" in response.text
+def test_recommend_found(df, retriever):
+    """Test getting recommendations for a movie that exists"""
+    # Get a movie that definitely exists
+    test_movie = df['title'].iloc[0]
+    recommendations = recommend(test_movie, df, retriever)
+    assert isinstance(recommendations, list)
+    assert len(recommendations) > 0
 
-def test_movie_detail_not_found():
-    response = client.get("/movie/asdkfjhasdkjfhakjsdhf")
-    assert response.status_code == 404
+def test_recommend_not_found(df, retriever):
+    """Test getting recommendations for a movie that doesn't exist"""
+    recommendations = recommend("NonExistentMovie12345", df, retriever)
+    assert isinstance(recommendations, list)
+    assert len(recommendations) == 0
 
-def test_api_authenticate_success():
-    response = client.post("/api/authenticate", data={"username": "admin", "password": "admin"})
-    assert response.status_code == 200
-    assert response.json()["authenticated"] is True
+def test_get_movie_details_found(df):
+    """Test getting details for a movie that exists"""
+    test_movie = df['title'].iloc[0]
+    details = get_movie_details(test_movie, df)
+    assert details is not None
+    assert 'title' in details
+    assert 'overview' in details
 
-def test_api_authenticate_fail():
-    response = client.post("/api/authenticate", data={"username": "admin", "password": "wrong"})
-    assert response.status_code == 200
-    assert response.json()["authenticated"] is False
+def test_get_movie_details_not_found(df):
+    """Test getting details for a movie that doesn't exist"""
+    details = get_movie_details("NonExistentMovie12345", df)
+    assert details is None
 
-def test_api_search_found():
-    response = client.post("/api/search", data={"search_movie": "Inception"})
-    assert response.status_code == 200
-    assert "Inception" in str(response.json()["search_result"])
+def test_format_number():
+    """Test number formatting function"""
+    assert format_number(1000) == "1,000"
+    assert format_number(1000000) == "1,000,000"
+    assert format_number(None) == "N/A"
 
-def test_api_search_not_found():
-    response = client.post("/api/search", data={"search_movie": "asdkfjhasdkjfhakjsdhf"})
-    assert response.status_code == 200
-    assert response.json()["not_found"] is True
+def test_format_float():
+    """Test float formatting function"""
+    assert format_float(3.14159, 2) == "3.14"
+    assert format_float(10.0, 1) == "10.0"
+    assert format_float(None) == "N/A"
 
-# The logout endpoint is expected to return a 303 status code because it redirects the user after logging out.
-def test_logout():
-    with TestClient(app) as client:
-        # Login first to set session
-        client.post("/login", data={"username": "admin", "password": "admin"})
+def test_dataframe_not_empty(df):
+    """Test that the dataframe loads and is not empty"""
+    assert df is not None
+    assert not df.empty
+    assert 'title' in df.columns
 
-        # Now logout
-        response = client.get("/logout", follow_redirects=False)
-        assert response.status_code == 303  # Redirect
