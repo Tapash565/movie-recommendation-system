@@ -1,8 +1,6 @@
 FROM continuumio/miniconda3:latest
 WORKDIR /app
 COPY . /app 
-RUN conda env create -f environment.yml
-RUN conda run -n venv python -m nltk.downloader wordnet
-SHELL ["conda", "run", "-n", "venv", "/bin/bash", "-c"]
+RUN pip install -r requirements.txt
 EXPOSE $PORT
-CMD ["sh", "-c", "conda run --no-capture-output -n venv uvicorn app:app --host 0.0.0.0 --port $PORT --workers 1"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "$PORT", "--workers", "1"]

@@ -7,18 +7,24 @@
 </head>
 <body>
     <header>
-        <h2>🎬 MovieRec</h2>
-        <nav class="nav-links">
-            <a href="/">Home</a>
-            <a href="#about">About</a>
-            <a href="#recommendations">Recommendations</a>
-            <a href="#contact">Contact</a>
-            <button class="btnLogin">Login</button>
-        </nav>
+        <div class="navbar">
+            <h2 class="logo">🎬 MovieRec</h2>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/#about">About</a></li>
+                <li><a href="/#recommendations">Recommendations</a></li>
+                <li><a href="/#contact">Contact</a></li>
+            </ul>
+            {% if not user %}
+            <a href="/login" class="btnLogin" style="text-decoration:none;">Login</a>
+            {% else %}
+            <a href="/logout" class="btnLogin" style="text-decoration:none;">Logout</a>
+            {% endif %}
+        </div>
     </header>
     <div class="container">
-        <form class="search-form" action="/search" method="post">
-            <input type="text" name="search_movie" placeholder="Search for a movie..." required>
+        <form class="search-form" action="/search" method="post" id="searchForm">
+            <input type="text" name="search_movie" id="searchInput" placeholder="Search for a movie..." required>
             <button type="submit">Search</button>
         </form>
         <h1>Search Results</h1>
@@ -40,4 +46,10 @@
             <a href="/" style="color: #4f8cff; text-decoration: underline;">Back to Home</a>
         </div>
     </div>
+    <script src="/static/api.js"></script>
+    <script>
+        // Auto-focus search input
+        document.getElementById('searchInput')?.focus();
+    </script>
 </body>
+</html>

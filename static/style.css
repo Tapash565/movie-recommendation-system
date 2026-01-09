@@ -1,4 +1,20 @@
-/* Login Page Styles */
+/**
+ * MovieRec - Main Stylesheet
+ * 
+ * Structure:
+ * 1. Login & Authentication Styles
+ * 2. Hero Section & Homepage
+ * 3. Global Styles & Reset
+ * 4. Navigation & Header
+ * 5. Container & Layout
+ * 6. Search Forms
+ * 7. Movie Details & Content
+ * 8. Recommendations & Lists
+ */
+
+/* ============================================
+   1. LOGIN & AUTHENTICATION STYLES
+   ============================================ */
 .login-container {
     min-height: 100vh;
     display: flex;
@@ -68,6 +84,10 @@
     padding: 0;
     margin: -1px;
 }
+
+/* ============================================
+   2. HERO SECTION & HOMEPAGE
+   ============================================ */
 .hero {
     background: linear-gradient(120deg, #23283a 60%, #4f8cff 100%);
     padding: 64px 0 48px 0;
@@ -139,6 +159,9 @@
     color: #b3b3b3;
     font-size: 1.08rem;
 }
+/* ============================================
+   3. GLOBAL STYLES & RESET
+   ============================================ */
 *{
     box-sizing: border-box;
     margin: 0;
@@ -154,6 +177,9 @@ body {
 }
 
 
+/* ============================================
+   4. NAVIGATION & HEADER
+   ============================================ */
 header {
     width: 100%;
     background: #23283a;
@@ -243,6 +269,9 @@ header {
     color: #23283a;
 }
 
+/* ============================================
+   5. CONTAINER & LAYOUT
+   ============================================ */
 .container {
     max-width: 700px;
     margin: 40px auto;
@@ -252,6 +281,9 @@ header {
     padding: 32px 36px 24px 36px;
 }
 
+/* ============================================
+   6. SEARCH FORMS
+   ============================================ */
 .search-form {
     display: flex;
     gap: 10px;
@@ -282,6 +314,9 @@ header {
     background: #2563eb;
 }
 
+/* ============================================
+   7. MOVIE DETAILS & CONTENT
+   ============================================ */
 .movie-details h1 {
     margin-top: 0;
     font-size: 2.2rem;
@@ -312,6 +347,9 @@ header {
     color: #ff6b6b;
     margin: 32px 0;
 }
+/* ============================================
+   8. RECOMMENDATIONS & LISTS
+   ============================================ */
 .recommendations ul {
     list-style: none;
     padding: 0;

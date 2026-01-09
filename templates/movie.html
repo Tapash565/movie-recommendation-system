@@ -8,17 +8,23 @@
 </head>
 <body>
     <header>
-        <h2>🎬 MovieRec</h2>
-        <nav class="nav-links">
-            <a href="/">Home</a>
-            <a href="#about">About</a>
-            <a href="#recommendations">Recommendations</a>
-            <a href="#contact">Contact</a>
-            <button class="btnLogin">Login</button>
-        </nav>
+        <div class="navbar">
+            <h2 class="logo">🎬 MovieRec</h2>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/#about">About</a></li>
+                <li><a href="/#recommendations">Recommendations</a></li>
+                <li><a href="/#contact">Contact</a></li>
+            </ul>
+            {% if not user %}
+            <a href="/login" class="btnLogin" style="text-decoration:none;">Login</a>
+            {% else %}
+            <a href="/logout" class="btnLogin" style="text-decoration:none;">Logout</a>
+            {% endif %}
+        </div>
     </header>
     <div class="container">
-        <form class="search-form" action="/search" method="post">
+        <form class="search-form" action="/search" method="post" id="searchForm">
             <input type="text" name="search_movie" placeholder="Search for a movie..." required>
             <button type="submit">Search</button>
         </form>
@@ -32,7 +38,7 @@
                 </div>
                 <div class="overview">
                     <h3>Overview</h3>
-                    <p>{{ details.overview | join(' ') }}</p>
+                    <p>{{ details.overview }}</p>
                 </div>
                 {% if details.cast or details.crew %}
                 <div class="cast-crew">
@@ -61,5 +67,6 @@
             {% endif %}
         </div>
     </div>
+    <script src="/static/api.js"></script>
 </body>
 </html>
