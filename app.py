@@ -15,6 +15,19 @@ import ast
 from datetime import datetime
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
+import pandas as pd
+import joblib
+import math
+from datetime import datetime
+import ast
+from rapidfuzz import process, fuzz
+import json
+import os
+from dotenv import load_dotenv
+import database as db
+
+# Load environment variables
+load_dotenv()
 
 # Page configuration
 st.set_page_config(
@@ -24,62 +37,285 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Initialize Database
+db.init_db()
+
+# Custom CSS for modern cinematic theme
 st.markdown("""
 <style>
-    .movie-card {
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+    /* Global Transitions */
+    * {
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Main Theme */
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+        font-family: 'Outfit', sans-serif;
+    }
+    
+    /* Glassmorphism Containers */
+    .glass-panel {
+        background: rgba(26, 28, 36, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
         padding: 20px;
-        border-radius: 10px;
-        background-color: #f0f2f6;
-        margin: 10px 0;
+        margin-bottom: 20px;
     }
-    .movie-title {
-        font-size: 24px;
-        font-weight: bold;
-        color: #1f77b4;
+
+    /* Movie Cards */
+    .movie-card {
+        background: rgba(26, 28, 36, 0.4);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 0;
+        margin-bottom: 25px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        height: 100%;
+        position: relative;
     }
-    .movie-detail {
-        margin: 5px 0;
+    .movie-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 15px 30px rgba(124, 58, 237, 0.2);
+        border-color: rgba(124, 58, 237, 0.5);
     }
-    .recommendation-item {
-        padding: 10px;
-        margin: 5px 0;
-        background-color: #e8eaf6;
-        border-radius: 5px;
-        cursor: pointer;
+    .movie-poster {
+        width: 100%;
+        height: 320px;
+        object-fit: cover;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .movie-info {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(26,28,36,0) 0%, rgba(26,28,36,0.8) 100%);
+    }
+    
+    /* Typography */
+    h1, h2, h3, .stHeader {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+    }
+    .title-text {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .subtitle-text {
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Badges */
+    .rating-badge {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
+    }
+    .genre-tag {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.85);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 0.6rem 1.2rem !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        opacity: 0.95;
+    }
+    
+    /* Inputs */
+    .stTextInput > div > div > input {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        color: white !important;
+        padding: 12px 15px !important;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #7c3aed !important;
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
+    }
+
+    /* Hero Section */
+    .hero-section {
+        padding: 60px 40px;
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(14, 17, 23, 0) 100%), 
+                    url('https://www.transparenttextures.com/patterns/dark-matter.png');
+        border-radius: 24px;
+        margin-bottom: 40px;
+        border-left: 6px solid #7c3aed;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+        z-index: 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
+USER_DB_FILE = "users_db.json"
+
+# Migration: Transfer users from json to sqlite if needed
+def migrate_users():
+    USER_DB_FILE = "users_db.json"
+    if os.path.exists(USER_DB_FILE):
+        try:
+            with open(USER_DB_FILE, "r") as f:
+                users = json.load(f)
+            for username, hashed_pw in users.items():
+                if db.get_user_id(username) is None:
+                    db.add_user(username, "placeholder") # This will be overwritten by hashed_pw
+                    # Manually update the hashed password since add_user hashes its input
+                    conn = db.get_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET password = %s WHERE username = %s", (hashed_pw, username))
+                    conn.commit()
+                    cursor.close()
+                    db.release_connection(conn)
+            os.rename(USER_DB_FILE, USER_DB_FILE + ".bak")
+        except Exception as e:
+            st.error(f"Migration error: {e}")
+
+migrate_users()
+
 if 'user' not in st.session_state:
     st.session_state.user = None
-if 'users' not in st.session_state:
-    st.session_state.users = {"admin": hashlib.sha256("admin".encode()).hexdigest()}
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
 if 'selected_movie' not in st.session_state:
     st.session_state.selected_movie = None
+if 'trending_movies' not in st.session_state:
+    st.session_state.trending_movies = None
+if 'view' not in st.session_state:
+    st.session_state.view = "Home"
 
 # Load data and model
 @st.cache_resource
 def load_model():
-    embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
-    vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
-    retriever = vectorstore.as_retriever(
-        search_type="similarity",
-        search_kwargs={"fetch_k": 30}
-    )
-    return retriever
+    try:
+        with st.spinner("Loading Recommendation Model..."):
+            embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
+            vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
+            retriever = vectorstore.as_retriever(
+                search_type="similarity",
+                search_kwargs={"fetch_k": 30}
+            )
+            return retriever
+    except Exception as e:
+        st.error(f"Failed to load recommendation model: {e}")
+        return None
 
 @st.cache_data
 def load_data():
     try:
-        df = joblib.load('movie_list.pkl')
-        return df
+        with st.spinner("Loading Movie Database..."):
+            df = joblib.load('movie_list.pkl')
+            return df
     except Exception as e:
         st.error(f"Failed to load movie data: {e}")
         return None
 
 # Helper functions
+def reset_selection():
+    st.session_state.selected_movie = None
+
+@st.fragment
+def render_library_actions(user_id, movie_details):
+    """Fragment to handle bookmarking and rating without full-page re-runs"""
+    st.markdown("### 🏷️ Your Library")
+    
+    # Bookmark buttons
+    current_status = db.get_bookmark(user_id, movie_details['id'])
+    
+    b_col1, b_col2, b_col3 = st.columns([1, 1, 1])
+    
+    with b_col1:
+        if st.button("📌 To Watch", use_container_width=True, 
+                     type="primary" if current_status == "to_watch" else "secondary"):
+            db.add_bookmark(user_id, movie_details['id'], movie_details['title'], "to_watch")
+            st.toast(f"Added '{movie_details['title']}' to To Watch")
+            # st.rerun()  # Removed to prevent full-page flicker
+            
+    with b_col2:
+        if st.button("✅ Watched", use_container_width=True,
+                     type="primary" if current_status == "watched" else "secondary"):
+            db.add_bookmark(user_id, movie_details['id'], movie_details['title'], "watched")
+            st.toast(f"Marked '{movie_details['title']}' as Watched")
+            # st.rerun()  # Removed to prevent full-page flicker
+    
+    with b_col3:
+        if current_status:
+            if st.button("❌ Remove", use_container_width=True):
+                db.remove_bookmark(user_id, movie_details['id'])
+                st.toast(f"Removed '{movie_details['title']}' from library")
+                # st.rerun()  # Removed to prevent full-page flicker
+
+    # Rating slider
+    current_rating = db.get_rating(user_id, movie_details['id'])
+    
+    st.markdown("**Your Rating**")
+    r_col1, r_col2 = st.columns([3, 1])
+    with r_col1:
+        new_rating = st.slider("Select rating", 0.0, 10.0, float(current_rating or 0), 0.5, label_visibility="collapsed")
+    with r_col2:
+        if st.button("Save Rating", use_container_width=True):
+            db.add_rating(user_id, movie_details['id'], movie_details['title'], float(new_rating))
+            st.toast(f"Rated '{movie_details['title']}' as {new_rating}/10")
+            # st.rerun()  # Removed to prevent full-page flicker
+
+def get_poster_url(poster_path):
+    """Construct full TMDB image URL"""
+    if poster_path and isinstance(poster_path, str):
+        return f"https://image.tmdb.org/t/p/w500{poster_path}"
+    return "https://via.placeholder.com/500x750?text=No+Poster"
+
+def render_stars(vote_average):
+    """Return star rating string"""
+    if pd.isna(vote_average):
+        return "N/A"
+    stars = int(round(vote_average / 2))
+    return "★" * stars + "☆" * (5 - stars)
+
 def format_number(value):
     """Format number with commas"""
     if value is None or (isinstance(value, float) and math.isnan(value)):
@@ -99,22 +335,70 @@ def format_float(value, decimals=1):
         return str(value)
 
 def recommend(movie, df, retriever, k=5):
-    movie = movie.strip()
-    if movie not in df['title'].values:
+    try:
+        movie = movie.strip()
+        if movie not in df['title'].values:
+            return []
+        
+        if retriever is None:
+            st.error("Recommendation engine is not available.")
+            return []
+            
+        results = retriever.invoke(movie, k=k+1)
+        recommendations = [doc.metadata['title'] for doc in results if doc.metadata['title'] != movie][:k]
+        return recommendations
+    except Exception as e:
+        st.error(f"Error generating recommendations: {e}")
+        return []
+
+def search(query, df, limit=12):
+    """
+    Search for movies using a tiered "Smart Search" approach:
+    1. Direct Title Match (Substring/Exact)
+    2. Similar Titles (Fuzzy matching for typos)
+    3. Keywords (Metadata tags)
+    """
+    query = query.strip().lower()
+    if not query:
         return []
     
-    results = retriever.invoke(movie, k=k+1)
-    recommendations = [doc.metadata['title'] for doc in results if doc.metadata['title'] != movie][:k]
-    return recommendations
+    results_ordered = []
+    seen_titles = set()
 
-def search(query, df):
-    query = query.strip().lower().replace(" ", "")
-    matches = []
-    for title in df['title']:
-        cleaned_title = str(title).lower().replace(" ", "")
-        if query in cleaned_title:
-            matches.append(title)
-    return matches
+    def add_unique(titles):
+        for t in titles:
+            if t not in seen_titles:
+                results_ordered.append(t)
+                seen_titles.add(t)
+            if len(results_ordered) >= limit:
+                return True
+        return False
+
+    # Tier 1: Direct Title Match (Substring or Exact)
+    # We prioritize exact names or titles starting with the query
+    exact_matches = df[df['title'].str.lower() == query]['title'].tolist()
+    if add_unique(exact_matches): return results_ordered
+    
+    starts_with = df[df['title'].str.lower().str.startswith(query)]['title'].tolist()
+    if add_unique(starts_with): return results_ordered
+    
+    contains = df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist()
+    if add_unique(contains): return results_ordered
+
+    # Tier 2: Fuzzy Title Match (handles typos)
+    titles_list = df['title'].tolist()
+    fuzzy_results = process.extract(query, titles_list, scorer=fuzz.token_set_ratio, limit=limit)
+    fuzzy_matches = [match[0] for match in fuzzy_results if match[1] >= 80] # High threshold for typos
+    if add_unique(fuzzy_matches): return results_ordered
+
+    # Tier 3: Keyword Match
+    # Check if the query matches any keywords (stored as comma-separated or list-like strings)
+    if 'keywords' in df.columns:
+        # Simple string contains check on the keywords column
+        keyword_matches = df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist()
+        if add_unique(keyword_matches): return results_ordered
+
+    return results_ordered
 
 def get_movie_details(title, df):
     """Get detailed information about a movie"""
@@ -194,9 +478,14 @@ with st.sidebar:
     
     if st.session_state.user:
         st.success(f"Welcome, {st.session_state.user}!")
+        
+        st.session_state.view = st.radio("Navigation", ["Home", "My Library"], index=0 if st.session_state.view == "Home" else 1)
+        
         if st.button("Logout"):
             st.session_state.user = None
+            st.session_state.user_id = None
             st.session_state.selected_movie = None
+            st.session_state.view = "Home"
             st.rerun()
     else:
         auth_choice = st.radio("Choose action:", ["Login", "Sign Up"])
@@ -208,9 +497,10 @@ with st.sidebar:
                 submit = st.form_submit_button("Login")
                 
                 if submit:
-                    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-                    if username in st.session_state.users and st.session_state.users[username] == hashed_pw:
+                    user_id = db.verify_user(username, password)
+                    if user_id:
                         st.session_state.user = username
+                        st.session_state.user_id = user_id
                         st.rerun()
                     else:
                         st.error("Invalid username or password")
@@ -222,14 +512,18 @@ with st.sidebar:
                 submit = st.form_submit_button("Sign Up")
                 
                 if submit:
-                    if username in st.session_state.users:
+                    if db.get_user_id(username):
                         st.error("Username already exists")
+                    elif len(password) < 4:
+                        st.error("Password must be at least 4 characters")
                     else:
-                        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-                        st.session_state.users[username] = hashed_pw
-                        st.session_state.user = username
-                        st.success("Account created successfully!")
-                        st.rerun()
+                        if db.add_user(username, password):
+                            st.session_state.user = username
+                            st.session_state.user_id = db.get_user_id(username)
+                            st.success("Account created successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Error creating account")
 
 # Main content
 if df is None:
@@ -237,100 +531,264 @@ if df is None:
 else:
     st.title("🎬 Movie Recommendation System")
     
-    # Search bar
-    search_query = st.text_input("Search for a movie:", placeholder="Enter movie title...")
+    # Search bar - Typing here will reset any selection
+    search_query = st.text_input(
+        "Search for a movie:", 
+        placeholder="Enter movie title...", 
+        on_change=reset_selection
+    )
     
-    if search_query:
+    # Search results - Only show if no movie is selected
+    if search_query and not st.session_state.selected_movie:
         results = search(search_query, df)
         
         if results:
-            st.subheader(f"Found {len(results)} movie(s)")
+            st.subheader(f"Search Results ({len(results)})")
             
-            # Display search results
-            cols = st.columns(3)
-            for idx, movie_title in enumerate(results[:12]):  # Limit to 12 results
-                with cols[idx % 3]:
-                    if st.button(movie_title, key=f"search_{idx}"):
-                        st.session_state.selected_movie = movie_title
-                        st.rerun()
+            with st.container(border=False):
+                st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+                # Display search results in a consistent grid
+                cols = st.columns(4)
+                for idx, movie_title in enumerate(results):
+                    # Find movie in dataframe
+                    matches = df[df['title'] == movie_title]
+                    if not matches.empty:
+                        row = matches.iloc[0]
+                        with cols[idx % 4]:
+                            poster_url = get_poster_url(row.get('poster_path'))
+                            vote_average = row.get('vote_average', 0)
+                            release_date = row.get('release_date', 'N/A')
+                            year = str(release_date).split('-')[0] if '-' in str(release_date) else 'N/A'
+                            
+                            st.markdown(f"""
+                            <div class="movie-card">
+                                <img src="{poster_url}" class="movie-poster">
+                                <div class="movie-info">
+                                    <div class="title-text" title="{movie_title}">{movie_title}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <span class="subtitle-text">{year}</span>
+                                        <span class="rating-badge">★ {format_float(vote_average)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if st.button("Details", key=f"search_btn_{idx}", use_container_width=True):
+                                st.session_state.selected_movie = movie_title
+                                st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning(f"No movies found matching '{search_query}'")
     
     # Display selected movie details
     if st.session_state.selected_movie:
         st.markdown("---")
+        if st.button("← Back to List"):
+            st.session_state.selected_movie = None
+            st.rerun()
+
         movie_details = get_movie_details(st.session_state.selected_movie, df)
-        print(movie_details)
         
         if movie_details:
-            col1, col2 = st.columns([2, 1])
+            # Layout: Poster (Left) + Details (Right)
+            col1, col2 = st.columns([1, 2])
             
             with col1:
-                st.markdown(f"### {movie_details.get('title', 'N/A')}")
-                st.markdown(f"**Overview:** {movie_details.get('overview', 'No overview available.')}")
-                
-                # Movie information
-                st.markdown("#### Movie Information")
-                info_col1, info_col2 = st.columns(2)
-                
-                with info_col1:
-                    st.markdown(f"**Release Date:** {movie_details.get('release_date', 'N/A')}")
-                    st.markdown(f"**Runtime:** {format_number(movie_details.get('runtime'))} minutes")
-                    st.markdown(f"**Budget:** ${format_number(movie_details.get('budget'))}")
-                    st.markdown(f"**Revenue:** ${format_number(movie_details.get('revenue'))}")
-                
-                with info_col2:
-                    st.markdown(f"**Rating:** {format_float(movie_details.get('vote_average'))} / 10")
-                    st.markdown(f"**Vote Count:** {format_number(movie_details.get('vote_count'))}")
-                    st.markdown(f"**Popularity:** {format_float(movie_details.get('popularity'))}")
-                    st.markdown(f"**Status:** {movie_details.get('status', 'N/A')}")
-                
-                # Additional details
-                if movie_details.get('genres'):
-                    st.markdown(f"**Genres:** {', '.join(movie_details['genres'])}")
-                
-                if movie_details.get('cast'):
-                    cast_display = movie_details['cast'] if isinstance(movie_details['cast'], str) else ', '.join(movie_details['cast'][:10])
-                    st.markdown(f"**Cast:** {cast_display}")
-                
-                if movie_details.get('crew'):
-                    crew_display = movie_details['crew'] if isinstance(movie_details['crew'], str) else ', '.join(movie_details['crew'][:10])
-                    st.markdown(f"**Crew:** {crew_display}")
-                
-                if movie_details.get('keywords'):
-                    st.markdown(f"**Keywords:** {', '.join(movie_details['keywords'][:5])}")
-                
-                if movie_details.get('production_companies'):
-                    st.markdown(f"**Production Companies:** {', '.join(movie_details['production_companies'][:3])}")
+                poster_url = get_poster_url(movie_details.get('poster_path'))
+                st.image(poster_url, use_container_width=True)
             
             with col2:
-                st.markdown("#### Recommendations")
-                recommendations = recommend(st.session_state.selected_movie, df, retriever)
+                st.markdown(f"# {movie_details.get('title', 'N/A')}")
+                if 'tagline' in movie_details and movie_details['tagline']:
+                    st.markdown(f"*{movie_details['tagline']}*")
                 
-                if recommendations:
-                    for rec in recommendations:
-                        if st.button(rec, key=f"rec_{rec}"):
-                            st.session_state.selected_movie = rec
-                            st.rerun()
+                # Metadata Badges
+                st.markdown(f"""
+                <div style="margin: 10px 0;">
+                    <span class="rating-badge">IMDb {format_float(movie_details.get('vote_average'))}</span>
+                    <span style="margin-left: 10px;">{movie_details.get('release_date', 'N/A')}</span>
+                    <span style="margin-left: 10px;">{format_number(movie_details.get('runtime'))} min</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Genres
+                if movie_details.get('genres'):
+                    genres_html = "".join([f'<span class="genre-tag">{g}</span>' for g in movie_details['genres']])
+                    st.markdown(f'<div style="margin-bottom: 15px;">{genres_html}</div>', unsafe_allow_html=True)
+                
+                st.markdown("### Overview")
+                st.write(movie_details.get('overview', 'No overview available.'))
+                
+                # Extended Info Tab
+                tab1, tab2 = st.tabs(["Details", "Cast & Crew"])
+                
+                with tab1:
+                    c1, c2 = st.columns(2)
+                    c1.markdown(f"**Budget:** ${format_number(movie_details.get('budget'))}")
+                    c1.markdown(f"**Revenue:** ${format_number(movie_details.get('revenue'))}")
+                    c2.markdown(f"**Status:** {movie_details.get('status', 'N/A')}")
+                    c2.markdown(f"**Original Language:** {movie_details.get('original_language', 'N/A').upper()}")
+                    
+                    if movie_details.get('production_companies'):
+                        st.markdown(f"**Production:** {', '.join(movie_details['production_companies'][:3])}")
+                
+                with tab2:
+                    if movie_details.get('cast'):
+                        cast = movie_details['cast'] if isinstance(movie_details['cast'], list) else str(movie_details['cast']).split(',')
+                        st.markdown(f"**Cast:** {', '.join(cast[:10])}")
+                    if movie_details.get('crew'):
+                        crew = movie_details['crew'] if isinstance(movie_details['crew'], list) else str(movie_details['crew']).split(',')
+                        st.markdown(f"**Director/Crew:** {', '.join(crew[:5])}")
+
+                # --- NEW SECTION: Bookmarking & Rating ---
+                if st.session_state.user_id:
+                    render_library_actions(st.session_state.user_id, movie_details)
                 else:
-                    st.info("No recommendations available")
+                    st.info("💡 Login to bookmark and rate movies!")
+
+            # Recommendations Section
+            st.markdown("---")
+            st.markdown("### 🎬 You Might Also Like")
+            
+            recommendations = recommend(st.session_state.selected_movie, df, retriever, k=4)
+            
+            if recommendations:
+                cols = st.columns(4)
+                for idx, rec_title in enumerate(recommendations):
+                    # Lookup recommendation details
+                    rec_matches = df[df['title'] == rec_title]
+                    if not rec_matches.empty:
+                        rec_row = rec_matches.iloc[0]
+                        with cols[idx]:
+                            rec_poster = get_poster_url(rec_row.get('poster_path'))
+                            st.markdown(f"""
+                            <div class="movie-card" style="margin-bottom: 10px;">
+                                <img src="{rec_poster}" class="movie-poster" style="height: 200px;">
+                                <div style="padding: 10px;">
+                                    <div class="title-text" style="font-size: 0.9rem;" title="{rec_title}">{rec_title}</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if st.button("View", key=f"rec_{idx}", use_container_width=True):
+                                st.session_state.selected_movie = rec_title
+                                st.rerun()
+            else:
+                st.info("No recommendations available")
         
         if st.button("Clear Selection"):
             st.session_state.selected_movie = None
             st.rerun()
     
+    elif st.session_state.view == "My Library":
+        st.title("📚 My Movie Library")
+        
+        if not st.session_state.user_id:
+            st.warning("Please login to view your library.")
+        else:
+            tab_tw, tab_w, tab_r = st.tabs(["📌 To Watch", "✅ Watched", "⭐ My Ratings"])
+            
+            def render_library_grid(movies, key_prefix):
+                if not movies:
+                    st.info("No movies in this list yet!")
+                    return
+                
+                cols = st.columns(4)
+                for idx, m in enumerate(movies):
+                    movie_id = m['movie_id']
+                    movie_title = m['movie_title']
+                    
+                    # Find movie in dataframe to get poster
+                    matches = df[df['id'] == movie_id]
+                    if not matches.empty:
+                        row = matches.iloc[0]
+                        poster_url = get_poster_url(row.get('poster_path'))
+                        vote_average = row.get('vote_average', 0)
+                        
+                        with cols[idx % 4]:
+                            poster_url = get_poster_url(row.get('poster_path'))
+                            vote_average = row.get('vote_average', 0)
+                            release_date = row.get('release_date', 'N/A')
+                            year = str(release_date).split('-')[0] if '-' in str(release_date) else 'N/A'
+                            
+                            st.markdown(f"""
+                            <div class="movie-card">
+                                <img src="{poster_url}" class="movie-poster">
+                                <div class="movie-info">
+                                    <div class="title-text" title="{movie_title}">{movie_title}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <span class="subtitle-text">{year}</span>
+                                        <span class="rating-badge">{"★ " + str(m.get('rating')) if 'rating' in m else "★ " + format_float(vote_average)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if st.button("Details", key=f"{key_prefix}_{idx}", use_container_width=True):
+                                st.session_state.selected_movie = movie_title
+                                st.session_state.view = "Home"
+                                st.rerun()
+
+            with tab_tw:
+                bookmarks = db.get_user_bookmarks(st.session_state.user_id)
+                to_watch = [b for b in bookmarks if b['status'] == 'to_watch']
+                render_library_grid(to_watch, "library_tw")
+                
+            with tab_w:
+                watched = [b for b in bookmarks if b['status'] == 'watched']
+                render_library_grid(watched, "library_w")
+                
+            with tab_r:
+                ratings = db.get_user_ratings(st.session_state.user_id)
+                render_library_grid(ratings, "library_r")
+
     else:
-        # Home page with random movies or popular movies
-        st.markdown("### Welcome to the Movie Recommendation System!")
-        st.markdown("Search for a movie above to get personalized recommendations.")
+        # Hero Section
+        st.markdown("""
+        <div class="hero-section">
+            <h1 style="color: white; margin-bottom: 10px;">🎬 Discover Your Next Favorite Movie</h1>
+            <p style="font-size: 1.2rem; color: #a0a0a0;">
+                Explore thousands of movies and get personalized recommendations powered by AI.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Featured content / Trending
+        st.markdown("### 🔥 Trending Movies")
         
         if not df.empty:
-            st.markdown("### Sample Movies")
-            sample_movies = df['title'].sample(min(9, len(df))).tolist()
+            # Sample 12 random movies for the grid
+            if st.session_state.trending_movies is None:
+                st.session_state.trending_movies = df.sample(min(12, len(df)))
             
-            cols = st.columns(3)
-            for idx, movie in enumerate(sample_movies):
-                with cols[idx % 3]:
-                    if st.button(movie, key=f"sample_{idx}"):
-                        st.session_state.selected_movie = movie
-                        st.rerun()
+            sample_df = st.session_state.trending_movies
+            
+            with st.container(border=False):
+                st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+                # Grid Layout
+                cols = st.columns(4)
+                for idx, (_, row) in enumerate(sample_df.iterrows()):
+                    with cols[idx % 4]:
+                        poster_url = get_poster_url(row.get('poster_path'))
+                        title = row['title']
+                        vote_average = row.get('vote_average', 0)
+                        release_date = row.get('release_date', 'N/A')
+                        year = str(release_date).split('-')[0] if '-' in str(release_date) else 'N/A'
+                        
+                        st.markdown(f"""
+                        <div class="movie-card">
+                            <img src="{poster_url}" class="movie-poster">
+                            <div class="movie-info">
+                                <div class="title-text" title="{title}">{title}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span class="subtitle-text">{year}</span>
+                                    <span class="rating-badge">★ {format_float(vote_average)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if st.button("Details", key=f"home_btn_{idx}", use_container_width=True):
+                            st.session_state.selected_movie = title
+                            st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
