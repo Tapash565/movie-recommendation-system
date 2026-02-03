@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}My Library - Movie Recommender{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px;">📚 My Movie Library</h2>
+
+<div class="glass-panel">
+    <!-- Tabs Navigation -->
+    <div
+        style="display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+        <button onclick="openTab(event, 'ToWatch')" class="tab-link active"
+            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px; border-bottom: 2px solid #7c3aed;">📌
+            To Watch</button>
+        <button onclick="openTab(event, 'Watched')" class="tab-link"
+            style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px;">✅
+            Watched</button>
+        <button onclick="openTab(event, 'Ratings')" class="tab-link"
+            style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px;">⭐
+            My Ratings</button>
+    </div>
+
+    <!-- To Watch Tab -->
+    <div id="ToWatch" class="tab-content">
+        <div class="grid-container">
+            {% for movie in to_watch %}
+            <div class="movie-card">
+                <a href="/movie/{{ movie.id }}">
+                    <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
+                    <div class="movie-info">
+                        <div class="title-text">{{ movie.title }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="subtitle-text">{{ movie.year }}</span>
+                            <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% else %}
+            <p>No movies in 'To Watch' list.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Watched Tab -->
+    <div id="Watched" class="tab-content" style="display: none;">
+        <div class="grid-container">
+            {% for movie in watched %}
+            <div class="movie-card">
+                <a href="/movie/{{ movie.id }}">
+                    <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
+                    <div class="movie-info">
+                        <div class="title-text">{{ movie.title }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="subtitle-text">{{ movie.year }}</span>
+                            <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% else %}
+            <p>No movies marked as 'Watched'.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Ratings Tab -->
+    <div id="Ratings" class="tab-content" style="display: none;">
+        <div class="grid-container">
+            {% for movie in rated_movies %}
+            <div class="movie-card">
+                <a href="/movie/{{ movie.id }}">
+                    <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
+                    <div class="movie-info">
+                        <div class="title-text">{{ movie.title }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="subtitle-text">{{ movie.year }}</span>
+                            <span class="rating-badge" style="background: #eab308;">⭐ {{ movie.user_rating }}</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% else %}
+            <p>No rated movies yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+            tablinks[i].style.borderBottom = "none";
+            tablinks[i].style.color = "rgba(255,255,255,0.6)";
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+        evt.currentTarget.style.borderBottom = "2px solid #7c3aed";
+        evt.currentTarget.style.color = "white";
+    }
+</script>
+{% endblock %}
