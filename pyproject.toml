@@ -1,0 +1,36 @@
+[project]
+name = "movie-recommendation-system-deployment"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "faiss-cpu>=1.13.2",
+    "fastapi>=0.128.0",
+    "huggingface-hub>=0.36.1",
+    "ipykernel>=7.1.0",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
+    "joblib>=1.5.3",
+    "jupyter>=1.1.1",
+    "langchain>=1.2.8",
+    "langchain-community>=0.4.1",
+    "langchain-google-genai>=4.2.0",
+    "langchain-huggingface>=1.2.0",
+    "nltk>=3.9.2",
+    "numpy>=2.4.2",
+    "pandas>=2.3.3",
+    "psycopg2-binary>=2.9.11",
+    "pydantic>=2.12.5",
+    "pytest>=9.0.2",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
+    "rapidfuzz>=3.14.3",
+    "requests>=2.32.5",
+    "sentence-transformers>=5.2.2",
+    "streamlit>=1.53.1",
+    "tf-keras>=2.20.1",
+    "transformers>=4.57.6",
+    "uvicorn>=0.40.0",
+]
+app = "main:app"
