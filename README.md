@@ -1,133 +1,78 @@
-# Movie Recommendation System - Project Structure
+# Movie Recommendation System - FastAPI Deployment
 
-This document outlines the structure of the Movie Recommendation System deployment project.
+This project is a movie recommendation web application built with **FastAPI**. It features a modern, responsive UI, robust search capabilities, and personalized recommendations powered by a FAISS vector store.
 
 ## 📁 Directory Structure
 
 ```
 movie_recommendation_system_deployment/
 │
-├── app.py                          # Main Streamlit application
-├── database.py                     # Database management module (SQLite)
-├── movie_app.db                    # SQLite database file (generated)
-├── requirements.txt                # Python dependencies
-├── Dockerfile                      # Docker configuration
-├── test_app.py                     # Test suite (pytest)
+├── main.py                          # FastAPI Application Entry Point
+├── services.py                      # Core Business Logic (Search, Recommendations)
+├── database.py                      # PostgreSQL Database Management
+├── requirements.txt                 # Python Dependencies
+├── test_main.py                     # API Integration Tests
 │
-├── .vscode/                        # VS Code configuration
-│   └── tasks.json                  # Build tasks (Run Streamlit, Run Tests)
+├── routers/                         # API Routers
+│   ├── auth.py                      # Authentication (Login/Signup/Logout)
+│   ├── movies.py                    # Movie Browsing & Details
+│   └── users.py                     # Library Management (Bookmarks/Ratings)
 │
-├── movie_recommendation_faiss/     # FAISS vector store
-│   ├── index.faiss
-│   └── index.pkl
+├── templates/                       # Jinja2 HTML Templates
+│   ├── base.html                    # Layout Template
+│   ├── index.html                   # Home & Search Results
+│   ├── ...                          # Other pages
 │
-├── movie_list.pkl                  # Processed movie list
-└── Movie_Recommendation_NLP.ipynb  # Jupyter notebook (model training)
+├── static/                          # Static Assets
+│   ├── css/style.css                # Glassmorphism Styles
+│   └── js/main.js                   # Client-side Interactions
+│
+├── movie_recommendation_faiss/      # FAISS Vector Store
+├── movie_list.pkl                   # Processed Movie Data
 ```
 
-## 🎯 Application Features
+## 🎯 Features
 
-### Streamlit UI Components
-- **Sidebar Authentication** - Login/Signup forms with session state management
-- **Search Interface** - Real-time movie search with results display
-- **Movie Details** - Comprehensive movie information display
-- **Recommendations** - Interactive recommendation list
-- **Navigation** - Button-based navigation between movies
+### Web Interface
+- **Glassmorphism UI**: A modern, dark-themed interface with translucent panels and smooth transitions.
+- **Server-Side Rendering (SSR)**: Standard HTML/CSS for better SEO and performance, powered by Jinja2.
+- **Interactive**: JavaScript-powered actions for bookmarking and rating without full page reloads.
 
 ### User Features
-- User authentication (Login/Signup)
-- Movie search functionality
-- Detailed movie information view
-- Personalized movie recommendations
-- Sample movies on homepage
-- Session persistence
-- Movie bookmarking (To Watch / Watched)
-- Personal movie ratings
-
-## 🎨 UI Structure
-
-### Main Components
-
-**Sidebar:**
-- Welcome message (when logged in)
-- Login/Signup forms
-- Logout button
-
-**Main Content:**
-- Page title and search bar
-- Search results grid (3 columns)
-- Selected movie details (2-column layout):
-  - Left: Movie overview, release info, budget, revenue, cast, genres, etc.
-  - Right: Recommendations list
-- Sample movies display (homepage)
-
-**Styling:**
-- Custom CSS for movie cards
-- Responsive layout
-- Clean, modern design
-- Interactive buttons
-
-## 🔧 Backend Structure
-
-### `app.py`
-Streamlit application with:
-- Session state management for user authentication
-- FAISS vector store for recommendations
-- Movie search functionality
-- Interactive UI components
-- Caching with `@st.cache_resource` and `@st.cache_data`
-
-**Key Functions:**
-- `load_model()` - Load FAISS retriever (cached)
-- `load_data()` - Load movie dataframe (cached)
-- `recommend(movie, df, retriever, k=5)` - Get movie recommendations
-- `search(query, df)` - Search movies by title
-- `get_movie_details(title, df)` - Get detailed movie information
-- `format_number(value)` - Format numbers with commas
-- `format_float(value, decimals=1)` - Format float values
-
-### Data Flow
-1. User interacts with Streamlit UI
-2. Input triggers Python function execution
-3. FAISS vector store retrieves similar movies
-4. Results displayed in Streamlit components
-5. Session state updated for navigation
+- **Smart Search**: Finds movies by exact title, fuzzy match (typos), or keywords.
+- **Recommendations**: Content-based recommendations using vector similarity.
+- **Library**: Save movies to "To Watch" or "Watched" and rate them.
+- **Authentication**: secure login and signup functionality.
 
 ## 🚀 Usage
 
-### Running the Application
+### 1. Install Dependencies
 ```bash
-streamlit run app.py
+pip install -r requirements.txt
 ```
+*Note: Ensure you have `rapidfuzz` installed if it's not picked up automatically.*
 
-The application will be available at `http://localhost:8501`
-
-### Running with VS Code Task
-Press `Ctrl+Shift+B` to run the default build task, which will:
-1. Start the Streamlit server
-2. Automatically open your browser to `http://127.0.0.1:8501`
-
-### Running Tests
+### 2. Run the Application
+Start the development server using Uvicorn:
 ```bash
-pytest -v test_app.py
+uvicorn main:app --reload --port 8000
 ```
+The app will be available at [http://localhost:8000](http://localhost:8000).
 
-Or use the VS Code task: "Run Tests"
+### 3. Run Tests
+Verify the code correctness using `pytest`:
+```bash
+pytest test_main.py
+```
 
 ## 🐳 Docker Deployment
-
-Build and run the Docker container:
+(Optional) To run via Docker, ensure your `Dockerfile` exposes port 8000.
 ```bash
 docker build -t movie-recommender .
-docker run -p 8501:8501 movie-recommender
+docker run -p 8000:8000 movie-recommender
 ```
 
 ## 📝 Notes
-
-- The application uses Streamlit's session state for user authentication
-- Movie data is loaded once and cached for performance
-- FAISS index is loaded on startup from `movie_recommendation_faiss/` directory
-- All UI is generated by Streamlit components (no separate HTML/CSS/JS files)
-- Interactive navigation is handled via session state and `st.rerun()`
-- The app supports both search-based and recommendation-based movie discovery
-
+- **App Architecture**: Moved from Streamlit (single script) to FastAPI (MVC-like pattern) for better scalability and separation of concerns.
+- **Database**: Uses PostgreSQL for storing user data. Ensure your `.env` has valid DB credentials.
+- **Model Loading**: The ML models (FAISS) are loaded once during application startup for efficiency.

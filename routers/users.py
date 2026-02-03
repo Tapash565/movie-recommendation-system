@@ -11,8 +11,7 @@ templates = Jinja2Templates(directory="templates")
 def library(request: Request):
     user_id = request.session.get("user_id")
     if not user_id:
-        return templates.TemplateResponse("login.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="login.html", context={
             "error": "Please login to view your library"
         })
         
@@ -42,8 +41,7 @@ def library(request: Request):
             details['user_rating'] = r['rating']
             rated_movies.append(details)
             
-    return templates.TemplateResponse("library.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="library.html", context={
         "user": request.session.get("user"),
         "to_watch": to_watch,
         "watched": watched,

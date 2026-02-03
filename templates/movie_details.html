@@ -24,13 +24,13 @@
                 <h4 style="margin-bottom: 10px;">Your Library</h4>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button onclick="toggleBookmark('{{ movie.id }}', '{{ movie.title|escape }}', 'to_watch')"
-                        class="btn-primary" id="btn-to-watch"
-                        style="flex: 1; background: {% if bookmark_status == 'to_watch' %}linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%){% else %}rgba(255,255,255,0.1){% endif %};">
+                        class="btn-primary {% if bookmark_status == 'to_watch' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
+                        id="btn-to-watch" style="flex: 1;">
                         📌 To Watch
                     </button>
                     <button onclick="toggleBookmark('{{ movie.id }}', '{{ movie.title|escape }}', 'watched')"
-                        class="btn-primary" id="btn-watched"
-                        style="flex: 1; background: {% if bookmark_status == 'watched' %}linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%){% else %}rgba(255,255,255,0.1){% endif %};">
+                        class="btn-primary {% if bookmark_status == 'watched' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
+                        id="btn-watched" style="flex: 1;">
                         ✅ Watched
                     </button>
                     {% if bookmark_status %}
