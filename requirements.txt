@@ -1,8 +1,5 @@
 streamlit
 psycopg2-binary
-pandas
-ipykernel
-jupyter
 
 langchain
 langchain-community
