@@ -1,19 +1,16 @@
 streamlit
 psycopg2-binary
-numpy
 pandas
 ipykernel
 jupyter
 
 langchain
 langchain-community
-langchain-google-genai
 langchain-huggingface
 huggingface-hub
 sentence-transformers
 transformers
 faiss-cpu
-tf-keras
 
 python-dotenv
 

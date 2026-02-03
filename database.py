@@ -10,53 +10,18 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-def ensure_database_exists():
-    dbname = os.getenv("DB_NAME", "moviedb")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-
-    try:
-        # Connect to the default 'postgres' database first
-        conn = psycopg2.connect(
-            dbname='postgres',
-            user=user,
-            password=password,
-            host=host,
-            port=port
-        )
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-        
-        # Check if database exists
-        cursor.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (dbname,))
-        exists = cursor.fetchone()
-        
-        if not exists:
-            cursor.execute(f'CREATE DATABASE "{dbname}"')
-            print(f"Database '{dbname}' created successfully!")
-        
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error ensuring database exists: {e}")
-
 # Use a connection pool for better performance
 def create_pool():
-    # Ensure database exists specifically if we're using individual params
-    # or if DATABASE_URL points to a local/managed instance we can control
-    ensure_database_exists()
     
     try:
         # Try DATABASE_URL first, but only if it looks complete
         if DATABASE_URL and "@" in DATABASE_URL:
-            return psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL)
+            return pool.SimpleConnectionPool(1, 10, DATABASE_URL)
         
         # Fallback to individual parameters
-        return psycopg2.pool.SimpleConnectionPool(
+        return pool.SimpleConnectionPool(
             1, 10,
-            dbname=os.getenv("DB_NAME"),
+            database=os.getenv("DB_NAME"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             host=os.getenv("DB_HOST"),
