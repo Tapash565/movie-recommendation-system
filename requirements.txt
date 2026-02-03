@@ -24,3 +24,7 @@ rapidfuzz
 nltk
 pytest
 joblib
+fastapi
+uvicorn
+python-multipart
+jinja2

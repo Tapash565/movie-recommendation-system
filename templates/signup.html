@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Movie Recommender{% endblock %}
+
+{% block content %}
+<div class="glass-panel auth-container">
+    <h2 style="text-align: center; margin-bottom: 30px;">Create Account</h2>
+
+    {% if error %}
+    <div
+        style="background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.5); padding: 10px; border-radius: 8px; margin-bottom: 20px; color: #fca5a5;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form action="/signup" method="post">
+        <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" required>
+            <small style="color: #aaa;">Must be at least 4 characters</small>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Sign Up</button>
+    </form>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 0.9rem; color: #aaa;">
+        Already have an account? <a href="/login" style="color: #7c3aed;">Login</a>
+    </div>
+</div>
+{% endblock %}

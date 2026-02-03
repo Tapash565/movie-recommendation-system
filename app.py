@@ -270,14 +270,14 @@ def render_library_actions(user_id, movie_details):
     b_col1, b_col2, b_col3 = st.columns([1, 1, 1])
     
     with b_col1:
-        if st.button("📌 To Watch", use_container_width=True, 
+        if st.button("📌 To Watch", width="stretch", 
                      type="primary" if current_status == "to_watch" else "secondary"):
             db.add_bookmark(user_id, movie_details['id'], movie_details['title'], "to_watch")
             st.toast(f"Added '{movie_details['title']}' to To Watch")
             # st.rerun()  # Removed to prevent full-page flicker
             
     with b_col2:
-        if st.button("✅ Watched", use_container_width=True,
+        if st.button("✅ Watched", width="stretch",
                      type="primary" if current_status == "watched" else "secondary"):
             db.add_bookmark(user_id, movie_details['id'], movie_details['title'], "watched")
             st.toast(f"Marked '{movie_details['title']}' as Watched")
@@ -285,7 +285,7 @@ def render_library_actions(user_id, movie_details):
     
     with b_col3:
         if current_status:
-            if st.button("❌ Remove", use_container_width=True):
+            if st.button("❌ Remove", width="stretch"):
                 db.remove_bookmark(user_id, movie_details['id'])
                 st.toast(f"Removed '{movie_details['title']}' from library")
                 # st.rerun()  # Removed to prevent full-page flicker
@@ -298,7 +298,7 @@ def render_library_actions(user_id, movie_details):
     with r_col1:
         new_rating = st.slider("Select rating", 0.0, 10.0, float(current_rating or 0), 0.5, label_visibility="collapsed")
     with r_col2:
-        if st.button("Save Rating", use_container_width=True):
+        if st.button("Save Rating", width="stretch"):
             db.add_rating(user_id, movie_details['id'], movie_details['title'], float(new_rating))
             st.toast(f"Rated '{movie_details['title']}' as {new_rating}/10")
             # st.rerun()  # Removed to prevent full-page flicker
@@ -573,7 +573,7 @@ else:
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            if st.button("Details", key=f"search_btn_{idx}", use_container_width=True):
+                            if st.button("Details", key=f"search_btn_{idx}", width="stretch"):
                                 st.session_state.selected_movie = movie_title
                                 st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -595,7 +595,7 @@ else:
             
             with col1:
                 poster_url = get_poster_url(movie_details.get('poster_path'))
-                st.image(poster_url, use_container_width=True)
+                st.image(poster_url, width="stretch")
             
             with col2:
                 st.markdown(f"# {movie_details.get('title', 'N/A')}")
@@ -670,7 +670,7 @@ else:
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            if st.button("View", key=f"rec_{idx}", use_container_width=True):
+                            if st.button("View", key=f"rec_{idx}", width="stretch"):
                                 st.session_state.selected_movie = rec_title
                                 st.rerun()
             else:
@@ -724,7 +724,7 @@ else:
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            if st.button("Details", key=f"{key_prefix}_{idx}", use_container_width=True):
+                            if st.button("Details", key=f"{key_prefix}_{idx}", width="stretch"):
                                 st.session_state.selected_movie = movie_title
                                 st.session_state.view = "Home"
                                 st.rerun()
@@ -788,7 +788,7 @@ else:
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        if st.button("Details", key=f"home_btn_{idx}", use_container_width=True):
+                        if st.button("Details", key=f"home_btn_{idx}", width="stretch"):
                             st.session_state.selected_movie = title
                             st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)

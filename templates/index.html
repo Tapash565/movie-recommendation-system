@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Movie Recommendation System{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1>🎬 Discover Your Next Favorite Movie</h1>
+    <p style="font-size: 1.2rem; color: #a0a0a0;">
+        Explore thousands of movies and get personalized recommendations powered by AI.
+    </p>
+</div>
+
+<div class="search-container">
+    <form action="/search" method="get">
+        <input type="text" name="q" class="search-input" placeholder="Search for a movie..."
+            value="{{ search_query | default('') }}">
+    </form>
+</div>
+
+{% if search_query %}
+<h3>Search Results for "{{ search_query }}"</h3>
+{% else %}
+<h3>🔥 Trending Movies</h3>
+{% endif %}
+
+<div class="glass-panel">
+    <div class="grid-container">
+        {% for movie in movies %}
+        <div class="movie-card">
+            <a href="/movie/{{ movie.id }}">
+                <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
+                <div class="movie-info">
+                    <div class="title-text" title="{{ movie.title }}">{{ movie.title }}</div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span class="subtitle-text">{{ movie.year }}</span>
+                        <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
+                    </div>
+                    <a href="/movie/{{ movie.id }}" class="btn-primary"
+                        style="text-align: center; display: block;">Details</a>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <p>No movies found.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
