@@ -15,7 +15,6 @@ pydantic
 requests
 itsdangerous
 rapidfuzz
-nltk
 pytest
 joblib
 fastapi
