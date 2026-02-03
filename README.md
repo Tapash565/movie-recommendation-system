@@ -12,15 +12,10 @@ movie_recommendation_system_deployment/
 ├── movie_app.db                    # SQLite database file (generated)
 ├── requirements.txt                # Python dependencies
 ├── Dockerfile                      # Docker configuration
-├── test_app.py                    # Test suite (pytest)
+├── test_app.py                     # Test suite (pytest)
 │
 ├── .vscode/                        # VS Code configuration
 │   └── tasks.json                  # Build tasks (Run Streamlit, Run Tests)
-│
-├── Data/                           # Movie datasets
-│   ├── tmdb_5000_credits.csv
-│   ├── tmdb_5000_movies.csv
-│   └── TMDB_movie_dataset_v11.csv
 │
 ├── movie_recommendation_faiss/     # FAISS vector store
 │   ├── index.faiss
