@@ -17,8 +17,7 @@ def home(request: Request):
     for _, row in trending.iterrows():
         trending_movies.append(services.get_movie_details(row['id'], df))
         
-    return templates.TemplateResponse("index.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="index.html", context={
         "movies": trending_movies,
         "user": request.session.get("user"),
         "active_page": "home"
@@ -29,8 +28,7 @@ def search(request: Request, q: str = Query("")):
     df = request.app.state.df
     results = services.search_movies(q, df)
     
-    return templates.TemplateResponse("index.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="index.html", context={
         "search_query": q,
         "movies": results,
         "user": request.session.get("user"),
@@ -60,8 +58,7 @@ def movie_details(request: Request, movie_id: int):
         if rating_val is not None:
             user_rating = rating_val
             
-    return templates.TemplateResponse("movie_details.html", {
-        "request": request, 
+    return templates.TemplateResponse(request=request, name="movie_details.html", context={
         "movie": movie,
         "recommendations": recommendations,
         "user": request.session.get("user"),

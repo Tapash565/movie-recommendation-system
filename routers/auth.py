@@ -8,7 +8,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "active_page": "login"})
+    return templates.TemplateResponse(request=request, name="login.html", context={"active_page": "login"})
 
 @router.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -18,27 +18,24 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         request.session["user_id"] = user_id
         return RedirectResponse(url="/", status_code=303)
     else:
-        return templates.TemplateResponse("login.html", {
-            "request": request, 
-            "error": "Invalid username or password"
-        })
+        return templates.TemplateResponse(request=request, name="login.html", context={
+        "error": "Invalid username or password"
+    })
 
 @router.get("/signup", response_class=HTMLResponse)
 def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request, "active_page": "signup"})
+    return templates.TemplateResponse(request=request, name="signup.html", context={"active_page": "signup"})
 
 @router.post("/signup")
 def signup(request: Request, username: str = Form(...), password: str = Form(...)):
     existing_id = db.get_user_id(username)
     if existing_id:
-        return templates.TemplateResponse("signup.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="signup.html", context={
             "error": "Username already exists"
         })
     
     if len(password) < 4:
-        return templates.TemplateResponse("signup.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="signup.html", context={
             "error": "Password must be at least 4 characters"
         })
         
@@ -48,8 +45,7 @@ def signup(request: Request, username: str = Form(...), password: str = Form(...
         request.session["user_id"] = user_id
         return RedirectResponse(url="/", status_code=303)
     else:
-        return templates.TemplateResponse("signup.html", {
-            "request": request, 
+        return templates.TemplateResponse(request=request, name="signup.html", context={
             "error": "Error creating account"
         })
 
