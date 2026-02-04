@@ -1,12 +1,13 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.9.0+cpu
 streamlit
 psycopg2-binary
 
 langchain
 langchain-community
 langchain-huggingface
-huggingface-hub
 sentence-transformers
-transformers
 faiss-cpu
 
 python-dotenv
