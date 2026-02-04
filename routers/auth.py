@@ -2,6 +2,10 @@ from fastapi import APIRouter, Request, Form, Response, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import database as db
+from logger import get_logger
+
+# Initialize logger for auth
+logger = get_logger("auth")
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -14,10 +18,12 @@ def login_page(request: Request):
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     user_id = db.verify_user(username, password)
     if user_id:
+        logger.info(f"User {username} logged in successfully.")
         request.session["user"] = username
         request.session["user_id"] = user_id
         return RedirectResponse(url="/", status_code=303)
     else:
+        logger.warning(f"Failed login attempt for username: {username}")
         return templates.TemplateResponse(request=request, name="login.html", context={
         "error": "Invalid username or password"
     })
@@ -30,6 +36,7 @@ def signup_page(request: Request):
 def signup(request: Request, username: str = Form(...), password: str = Form(...)):
     existing_id = db.get_user_id(username)
     if existing_id:
+        logger.warning(f"Signup failed: Username {username} already exists.")
         return templates.TemplateResponse(request=request, name="signup.html", context={
             "error": "Username already exists"
         })
@@ -40,16 +47,20 @@ def signup(request: Request, username: str = Form(...), password: str = Form(...
         })
         
     if db.add_user(username, password):
+        logger.info(f"New user created: {username}")
         user_id = db.get_user_id(username)
         request.session["user"] = username
         request.session["user_id"] = user_id
         return RedirectResponse(url="/", status_code=303)
     else:
+        logger.error(f"Error creating account for username: {username}")
         return templates.TemplateResponse(request=request, name="signup.html", context={
             "error": "Error creating account"
         })
 
 @router.get("/logout")
 def logout(request: Request):
+    username = request.session.get("user")
+    logger.info(f"User {username} logged out.")
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)

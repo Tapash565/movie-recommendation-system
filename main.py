@@ -10,6 +10,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 import joblib
 import services
+from logger import get_logger
+
+# Initialize logger for main
+logger = get_logger("main")
 
 # Suppress Warnings
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -30,7 +34,7 @@ from routers import auth, movies, users
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load basic data on startup
-    print("Initializing Movie Recommendation System...")
+    logger.info("Initializing Movie Recommendation System...")
     app.state.df = services.load_movie_data()
     
     # Lazy load retriever later
@@ -38,9 +42,11 @@ async def lifespan(app: FastAPI):
     
     yield
     # Clean up resources if needed
+    logger.info("Shutting down Movie Recommendation System...")
 
 def get_retriever(app: FastAPI):
     if app.state.retriever is None:
+        logger.info("Lazy loading retriever...")
         app.state.retriever = services.load_retriever()
     return app.state.retriever
 
@@ -66,4 +72,5 @@ app.include_router(users.router)
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("Starting server on 0.0.0.0:8000")
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
