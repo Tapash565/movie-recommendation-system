@@ -223,31 +223,18 @@ if 'trending_movies' not in st.session_state:
 if 'view' not in st.session_state:
     st.session_state.view = "Home"
 
+import services
+
 # Load data and model
 @st.cache_resource
 def load_model():
-    try:
-        with st.spinner("Loading Recommendation Model..."):
-            embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
-            vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
-            retriever = vectorstore.as_retriever(
-                search_type="similarity",
-                search_kwargs={"fetch_k": 30}
-            )
-            return retriever
-    except Exception as e:
-        st.error(f"Failed to load recommendation model: {e}")
-        return None
+    with st.spinner("Loading Recommendation Model..."):
+        return services.load_retriever()
 
 @st.cache_data
 def load_data():
-    try:
-        with st.spinner("Loading Movie Database..."):
-            df = joblib.load('movie_list.pkl')
-            return df
-    except Exception as e:
-        st.error(f"Failed to load movie data: {e}")
-        return None
+    with st.spinner("Loading Movie Database..."):
+        return services.load_movie_data()
 
 # Helper functions
 def reset_selection():

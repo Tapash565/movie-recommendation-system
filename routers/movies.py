@@ -37,8 +37,9 @@ def search(request: Request, q: str = Query("")):
 
 @router.get("/movie/{movie_id}", response_class=HTMLResponse)
 def movie_details(request: Request, movie_id: int):
+    from main import get_retriever
     df = request.app.state.df
-    retriever = request.app.state.retriever
+    retriever = get_retriever(request.app)
     
     movie = services.get_movie_details(movie_id, df)
     if not movie:
