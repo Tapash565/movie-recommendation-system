@@ -7,6 +7,10 @@ import math
 import pandas as pd
 import ast
 from datetime import datetime
+from logger import get_logger
+
+# Initialize logger for services
+logger = get_logger("services")
 
 # Helper functions
 def get_poster_url(poster_path):
@@ -181,7 +185,7 @@ def get_recommendations(title, df, retriever, k=5):
         
         return [get_movie_details(t, df) for t in recommendation_titles]
     except Exception as e:
-        print(f"Error generating recommendations: {e}")
+        logger.error(f"Error generating recommendations: {e}")
         return []
 
 def load_movie_data(path='movie_list.pkl'):
@@ -189,15 +193,15 @@ def load_movie_data(path='movie_list.pkl'):
     try:
         return joblib.load(path)
     except Exception as e:
-        print(f"Error loading movie list: {e}")
-        return None
+        logger.error(f"Error loading movie list: {e}")
+        return []
 
 def load_retriever(path='movie_recommendation_faiss'):
     """
     Lazy-load the FAISS retriever.
     Using MiniLM-L6-v2 for memory efficiency (approx 90MB).
     """
-    print(f"Loading Recommendation Model from {path}...")
+    logger.info(f"Loading Recommendation Model from {path}...")
     try:
         # Use CPU explicitly and small model
         embedding = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
@@ -210,8 +214,8 @@ def load_retriever(path='movie_recommendation_faiss'):
             search_type="similarity",
             search_kwargs={"fetch_k": 30}
         )
-        print("Recommendation Model loaded successfully.")
+        logger.info("Recommendation Model loaded successfully.")
         return retriever
     except Exception as e:
-        print(f"Error loading FAISS model: {e}")
+        logger.error(f"Error loading FAISS model: {e}")
         return None

@@ -3,6 +3,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import services
 import database as db
+from logger import get_logger
+
+# Initialize logger for movies
+logger = get_logger("movies")
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -26,6 +30,7 @@ def home(request: Request):
 @router.get("/search", response_class=HTMLResponse)
 def search(request: Request, q: str = Query("")):
     df = request.app.state.df
+    logger.info(f"Searching for movies with query: {q}")
     results = services.search_movies(q, df)
     
     return templates.TemplateResponse(request=request, name="index.html", context={
@@ -43,9 +48,11 @@ def movie_details(request: Request, movie_id: int):
     
     movie = services.get_movie_details(movie_id, df)
     if not movie:
+        logger.warning(f"Movie ID {movie_id} not found.")
         raise HTTPException(status_code=404, detail="Movie not found")
     
     # Get recommendations
+    logger.info(f"Generating recommendations for movie: {movie['title']} (ID: {movie_id})")
     recommendations = services.get_recommendations(movie['title'], df, retriever)
     
     # Get user interaction status if logged in

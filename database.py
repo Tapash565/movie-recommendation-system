@@ -3,6 +3,10 @@ from psycopg2 import pool
 import os
 import hashlib
 from dotenv import load_dotenv
+from logger import get_logger
+
+# Initialize logger for database
+logger = get_logger("database")
 
 load_dotenv()
 
@@ -28,7 +32,7 @@ def create_pool():
             port=os.getenv("DB_PORT")
         )
     except Exception as e:
-        print(f"Error creating connection pool: {e}")
+        logger.error(f"Error creating connection pool: {e}")
         return None
 
 db_pool = create_pool()
@@ -103,7 +107,7 @@ def add_user(username, password):
         cursor.close()
         return True
     except Exception as e:
-        print(f"Error adding user: {e}")
+        logger.error(f"Error adding user {username}: {e}")
         return False
     finally:
         release_connection(conn)
@@ -147,7 +151,7 @@ def add_bookmark(user_id, movie_id, movie_title, status):
         cursor.close()
         return True
     except Exception as e:
-        print(f"Error adding bookmark: {e}")
+        logger.error(f"Error adding bookmark for user {user_id}, movie {movie_id}: {e}")
         return False
     finally:
         release_connection(conn)
@@ -202,7 +206,7 @@ def add_rating(user_id, movie_id, movie_title, rating):
         cursor.close()
         return True
     except Exception as e:
-        print(f"Error adding rating: {e}")
+        logger.error(f"Error adding rating for user {user_id}, movie {movie_id}: {e}")
         return False
     finally:
         release_connection(conn)

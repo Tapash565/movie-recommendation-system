@@ -3,6 +3,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import services
 import database as db
+from logger import get_logger
+
+# Initialize logger for users
+logger = get_logger("users")
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -10,11 +14,14 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/library", response_class=HTMLResponse)
 def library(request: Request):
     user_id = request.session.get("user_id")
+    username = request.session.get("user")
     if not user_id:
+        logger.warning("Unauthorized access attempt to library.")
         return templates.TemplateResponse(request=request, name="login.html", context={
             "error": "Please login to view your library"
         })
         
+    logger.info(f"User {username} (ID: {user_id}) is viewing their library.")
     df = request.app.state.df
     
     # Get user data
@@ -55,14 +62,17 @@ def library(request: Request):
 async def add_bookmark(request: Request):
     data = await request.json()
     user_id = request.session.get("user_id")
+    username = request.session.get("user")
     
     if not user_id:
+        logger.warning("Unauthorized API call to /api/bookmark")
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     movie_id = data.get('movie_id')
     movie_title = data.get('movie_title')
     status = data.get('status')
     
+    logger.info(f"User {username} (ID: {user_id}) setting bookmark for {movie_title} (ID: {movie_id}) to {status}")
     success = db.add_bookmark(user_id, movie_id, movie_title, status)
     return {"success": success}
 
@@ -70,11 +80,14 @@ async def add_bookmark(request: Request):
 async def remove_bookmark(request: Request):
     data = await request.json()
     user_id = request.session.get("user_id")
+    username = request.session.get("user")
     
     if not user_id:
+        logger.warning("Unauthorized API call to /api/remove_bookmark")
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     movie_id = data.get('movie_id')
+    logger.info(f"User {username} (ID: {user_id}) removing bookmark for movie ID: {movie_id}")
     db.remove_bookmark(user_id, movie_id)
     return {"success": True}
 
@@ -82,13 +95,16 @@ async def remove_bookmark(request: Request):
 async def rate_movie(request: Request):
     data = await request.json()
     user_id = request.session.get("user_id")
+    username = request.session.get("user")
     
     if not user_id:
+        logger.warning("Unauthorized API call to /api/rate")
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     movie_id = data.get('movie_id')
     movie_title = data.get('movie_title')
     rating = data.get('rating')
     
+    logger.info(f"User {username} (ID: {user_id}) rated movie {movie_title} (ID: {movie_id}) as {rating}")
     success = db.add_rating(user_id, movie_id, movie_title, float(rating))
     return {"success": success}
