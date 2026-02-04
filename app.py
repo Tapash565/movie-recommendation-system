@@ -9,20 +9,14 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 import streamlit as st
 import joblib
-import hashlib
 import math
 import ast
 from datetime import datetime
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 import pandas as pd
-import joblib
-import math
-from datetime import datetime
-import ast
 from rapidfuzz import process, fuzz
 import json
-import os
 from dotenv import load_dotenv
 import database as db
 
