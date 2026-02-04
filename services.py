@@ -1,9 +1,12 @@
+from rapidfuzz import process, fuzz
+import joblib
+from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+import os
+import math
 import pandas as pd
-import numpy as np
 import ast
 from datetime import datetime
-import math
-from rapidfuzz import process, fuzz
 
 # Helper functions
 def get_poster_url(poster_path):
@@ -180,3 +183,35 @@ def get_recommendations(title, df, retriever, k=5):
     except Exception as e:
         print(f"Error generating recommendations: {e}")
         return []
+
+def load_movie_data(path='movie_list.pkl'):
+    """Load the movie dataframe."""
+    try:
+        return joblib.load(path)
+    except Exception as e:
+        print(f"Error loading movie list: {e}")
+        return None
+
+def load_retriever(path='movie_recommendation_faiss'):
+    """
+    Lazy-load the FAISS retriever.
+    Using MiniLM-L6-v2 for memory efficiency (approx 90MB).
+    """
+    print(f"Loading Recommendation Model from {path}...")
+    try:
+        # Use CPU explicitly and small model
+        embedding = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        vectorstore = FAISS.load_local(
+            path, 
+            embedding, 
+            allow_dangerous_deserialization=True
+        )
+        retriever = vectorstore.as_retriever(
+            search_type="similarity",
+            search_kwargs={"fetch_k": 30}
+        )
+        print("Recommendation Model loaded successfully.")
+        return retriever
+    except Exception as e:
+        print(f"Error loading FAISS model: {e}")
+        return None

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 import joblib
+import services
 
 # Suppress Warnings
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -28,30 +29,20 @@ from routers import auth, movies, users
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load resources on startup
-    print("Loading Movie Database...")
-    try:
-        app.state.df = joblib.load('movie_list.pkl')
-        print("Movie Database loaded.")
-    except Exception as e:
-        print(f"Error loading movie list: {e}")
-        app.state.df = None
-
-    print("Loading Recommendation Model...")
-    try:
-        embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
-        vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
-        app.state.retriever = vectorstore.as_retriever(
-            search_type="similarity",
-            search_kwargs={"fetch_k": 30}
-        )
-        print("Recommendation Model loaded.")
-    except Exception as e:
-        print(f"Error loading FAISS model: {e}")
-        app.state.retriever = None
-        
+    # Load basic data on startup
+    print("Initializing Movie Recommendation System...")
+    app.state.df = services.load_movie_data()
+    
+    # Lazy load retriever later
+    app.state.retriever = None
+    
     yield
     # Clean up resources if needed
+
+def get_retriever(app: FastAPI):
+    if app.state.retriever is None:
+        app.state.retriever = services.load_retriever()
+    return app.state.retriever
 
 app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
