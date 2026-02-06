@@ -8,12 +8,9 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 import streamlit as st
-import joblib
 import math
 import ast
 from datetime import datetime
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
 import pandas as pd
 from rapidfuzz import process, fuzz
 import json
