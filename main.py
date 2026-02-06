@@ -6,9 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-import joblib
 import services
 from logger import get_logger
 
@@ -72,5 +69,6 @@ app.include_router(users.router)
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting server on 0.0.0.0:8000")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    logger.info(f"Starting server on 0.0.0.0:{port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
