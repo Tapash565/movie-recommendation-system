@@ -1,13 +1,8 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-
-torch==2.9.0+cpu
-streamlit
 psycopg2-binary
-
+pandas
 langchain
 langchain-community
 langchain-huggingface
-sentence-transformers
 faiss-cpu
 
 python-dotenv
@@ -20,5 +15,6 @@ pytest
 joblib
 fastapi
 uvicorn
+gunicorn
 python-multipart
 jinja2

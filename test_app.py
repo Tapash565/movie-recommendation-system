@@ -14,8 +14,8 @@ def df():
 def retriever():
     try:
         from langchain_community.vectorstores import FAISS
-        from langchain_huggingface import HuggingFaceEmbeddings
-        embedding = HuggingFaceEmbeddings(model='all-MiniLM-L6-v2')
+        from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
+        embedding = HuggingFaceInferenceAPIEmbeddings(model_name='all-MiniLM-L6-v2')
         vectorstore = FAISS.load_local('movie_recommendation_faiss', embedding, allow_dangerous_deserialization=True)
         return vectorstore.as_retriever(
             search_type="similarity",
