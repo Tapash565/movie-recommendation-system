@@ -1,15 +1,21 @@
-FROM continuumio/miniconda3:latest
+FROM python:3.11-slim
 WORKDIR /app
+
+# Install system dependencies needed for FAISS and other libs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Optimization environment variables
 ENV OMP_NUM_THREADS=1
 ENV MKL_NUM_THREADS=1
 ENV TOKENIZERS_PARALLELISM=false
-ENV TF_ENABLE_ONEDNN_OPTS=0
-ENV TF_CPP_MIN_LOG_LEVEL=3
+ENV PYTHONUNBUFFERED=1
 
-COPY . /app 
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 8501
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8501"]
+COPY . .
+
+EXPOSE 8000
+CMD ["gunicorn", "main:app", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

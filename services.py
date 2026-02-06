@@ -1,12 +1,13 @@
 from rapidfuzz import process, fuzz
 import joblib
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 import os
 import math
 import pandas as pd
 import ast
 from datetime import datetime
+from langchain_core.documents import Document
 from logger import get_logger
 
 # Initialize logger for services
@@ -196,15 +197,63 @@ def load_movie_data(path='movie_list.pkl'):
         logger.error(f"Error loading movie list: {e}")
         return []
 
+def create_faiss_index(df, path='movie_recommendation_faiss'):
+    """Create a new FAISS index from the movie dataframe."""
+    logger.info("Creating new FAISS index. This may take a few minutes...")
+    try:
+        if df is None or (isinstance(df, list) and not df):
+            logger.error("Cannot create index: Movie data is empty.")
+            return None
+
+        # Prepare documents for embedding
+        documents = []
+        for _, row in df.iterrows():
+            # Join tags into a single string if it's a list
+            tags = row.get('tags', '')
+            if isinstance(tags, list):
+                tags = " ".join(tags)
+            
+            # Create document with metadata
+            doc = Document(
+                page_content=str(tags),
+                metadata={
+                    "id": int(row['id']),
+                    "title": str(row['title'])
+                }
+            )
+            documents.append(doc)
+        
+        # Initialize embedding model
+        embedding = HuggingFaceEndpointEmbeddings(model='sentence-transformers/all-MiniLM-L6-v2')
+        
+        # Create and save vectorstore
+        vectorstore = FAISS.from_documents(documents, embedding)
+        vectorstore.save_local(path)
+        
+        logger.info(f"FAISS index created and saved to {path}.")
+        return vectorstore.as_retriever(
+            search_type="similarity",
+            search_kwargs={"fetch_k": 30}
+        )
+    except Exception as e:
+        logger.error(f"Error creating FAISS index: {e}")
+        return None
+
 def load_retriever(path='movie_recommendation_faiss'):
     """
     Lazy-load the FAISS retriever.
-    Using MiniLM-L6-v2 for memory efficiency (approx 90MB).
+    If missing, attempts to create one from movie_list.pkl.
     """
     logger.info(f"Loading Recommendation Model from {path}...")
     try:
+        # Check if directory exists
+        if not os.path.exists(path):
+            logger.warning(f"FAISS index directory {path} not found. Triggering auto-creation...")
+            df = load_movie_data()
+            return create_faiss_index(df, path)
+
         # Use CPU explicitly and small model
-        embedding = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        embedding = HuggingFaceEndpointEmbeddings(model='sentence-transformers/all-MiniLM-L6-v2')
         vectorstore = FAISS.load_local(
             path, 
             embedding, 
@@ -217,5 +266,11 @@ def load_retriever(path='movie_recommendation_faiss'):
         logger.info("Recommendation Model loaded successfully.")
         return retriever
     except Exception as e:
-        logger.error(f"Error loading FAISS model: {e}")
-        return None
+        logger.error(f"Error loading FAISS model: {e}. Attempting recovery...")
+        # If loading fails (e.g. corrupted file), try to recreate
+        try:
+            df = load_movie_data()
+            return create_faiss_index(df, path)
+        except Exception as re:
+            logger.error(f"Critical error: Could not recreate index: {re}")
+            return None
