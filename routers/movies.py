@@ -1,19 +1,18 @@
-from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi import APIRouter, Request, Query, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import services
 import database as db
+from dependencies import get_df, get_retriever, templates
 from logger import get_logger
 
 # Initialize logger for movies
 logger = get_logger("movies")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    df = request.app.state.df
+def home(request: Request, df=Depends(get_df)):
     # Sample 12 random movies
     trending = df.sample(min(12, len(df)))
     trending_movies = []
@@ -28,8 +27,7 @@ def home(request: Request):
     })
 
 @router.get("/search", response_class=HTMLResponse)
-def search(request: Request, q: str = Query("")):
-    df = request.app.state.df
+def search(request: Request, q: str = Query(""), df=Depends(get_df)):
     logger.info(f"Searching for movies with query: {q}")
     results = services.search_movies(q, df)
     
@@ -41,10 +39,12 @@ def search(request: Request, q: str = Query("")):
     })
 
 @router.get("/movie/{movie_id}", response_class=HTMLResponse)
-def movie_details(request: Request, movie_id: int):
-    from main import get_retriever
-    df = request.app.state.df
-    retriever = get_retriever(request.app)
+def movie_details(
+    request: Request, 
+    movie_id: int, 
+    df=Depends(get_df),
+    retriever=Depends(get_retriever)
+):
     
     movie = services.get_movie_details(movie_id, df)
     if not movie:

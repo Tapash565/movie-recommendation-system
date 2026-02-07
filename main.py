@@ -3,6 +3,7 @@ import warnings
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
@@ -12,14 +13,16 @@ from logger import get_logger
 # Initialize logger for main
 logger = get_logger("main")
 
-# Suppress Warnings
+# Suppress unnecessary logs but don't ignore warnings globally
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.filterwarnings('ignore')
 
 # Load environment variables
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey") # Should be in .env
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    logger.critical("SECRET_KEY not found in environment variables!")
+    raise RuntimeError("SECRET_KEY must be set in .env")
 
 # Database initialization
 import database as db
@@ -41,16 +44,14 @@ async def lifespan(app: FastAPI):
     # Clean up resources if needed
     logger.info("Shutting down Movie Recommendation System...")
 
-def get_retriever(app: FastAPI):
-    if app.state.retriever is None:
-        logger.info("Lazy loading retriever...")
-        app.state.retriever = services.load_retriever()
-    return app.state.retriever
+from dependencies import get_df, get_retriever
 
 app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from dependencies import get_df, get_retriever, templates
 
 # Middleware
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)

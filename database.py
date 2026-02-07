@@ -1,6 +1,6 @@
 from psycopg2 import pool
 import os
-import hashlib
+import bcrypt
 from dotenv import load_dotenv
 from logger import get_logger
 
@@ -91,16 +91,17 @@ def init_db():
     finally:
         release_connection(conn)
 
-def hash_password(password, username):
-    salt = f"{username}_salt"
-    return hashlib.sha256((password + salt).encode()).hexdigest()
+def hash_password(password):
+    """Hash a password using bcrypt."""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode(), salt).decode()
 
 def add_user(username, password):
     conn = get_connection()
     if not conn: return False
     try:
         cursor = conn.cursor()
-        hashed_pw = hash_password(password, username)
+        hashed_pw = hash_password(password)
         cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_pw))
         conn.commit()
         cursor.close()
@@ -116,11 +117,13 @@ def verify_user(username, password):
     if not conn: return None
     try:
         cursor = conn.cursor()
-        hashed_pw = hash_password(password, username)
-        cursor.execute("SELECT id FROM users WHERE username = %s AND password = %s", (username, hashed_pw))
+        cursor.execute("SELECT id, password FROM users WHERE username = %s", (username,))
         user = cursor.fetchone()
         cursor.close()
-        return user[0] if user else None
+        
+        if user and bcrypt.checkpw(password.encode(), user[1].encode()):
+            return user[0]
+        return None
     finally:
         release_connection(conn)
 
