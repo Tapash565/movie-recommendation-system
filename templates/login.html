@@ -4,11 +4,10 @@
 
 {% block content %}
 <div class="glass-panel auth-container">
-    <h2 style="text-align: center; margin-bottom: 30px;">Login</h2>
+    <h2 class="text-center mb-30">Login</h2>
 
     {% if error %}
-    <div
-        style="background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.5); padding: 10px; border-radius: 8px; margin-bottom: 20px; color: #fca5a5;">
+    <div class="alert alert-danger">
         {{ error }}
     </div>
     {% endif %}
@@ -24,10 +23,10 @@
             <input type="password" name="password" class="form-control" required>
         </div>
 
-        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Login</button>
+        <button type="submit" class="btn-primary w-100 mt-10">Login</button>
     </form>
 
-    <div style="text-align: center; margin-top: 20px; font-size: 0.9rem; color: #aaa;">
+    <div class="text-center mt-20" style="font-size: 0.9rem; color: #aaa;">
         Don't have an account? <a href="/signup" style="color: #7c3aed;">Sign Up</a>
     </div>
 </div>
