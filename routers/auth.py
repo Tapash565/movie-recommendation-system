@@ -2,13 +2,13 @@ from fastapi import APIRouter, Request, Form, Response, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import database as db
+from dependencies import templates
 from logger import get_logger
 
 # Initialize logger for auth
 logger = get_logger("auth")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):

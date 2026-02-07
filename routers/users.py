@@ -3,13 +3,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import services
 import database as db
+from dependencies import templates
 from logger import get_logger
 
 # Initialize logger for users
 logger = get_logger("users")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/library", response_class=HTMLResponse)
 def library(request: Request):

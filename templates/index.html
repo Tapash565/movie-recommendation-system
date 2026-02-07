@@ -33,7 +33,7 @@
                     <div class="title-text" title="{{ movie.title }}">{{ movie.title }}</div>
                     <div class="d-flex justify-between align-center mb-10">
                         <span class="subtitle-text">{{ movie.year }}</span>
-                        <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
+                        <span class="rating-badge">★ {{ movie.vote_average | format_float }}</span>
                     </div>
                     <a href="/movie/{{ movie.id }}" class="btn-primary text-center w-100"
                         style="display: block;">Details</a>

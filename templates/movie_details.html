@@ -63,8 +63,8 @@
             {% endif %}
 
             <div style="margin: 20px 0; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <span class="rating-badge">IMDb {{ movie.vote_average_formatted }}</span>
-                <span>{{ movie.release_date_formatted }}</span>
+                <span class="rating-badge">IMDb {{ movie.vote_average | format_float }}</span>
+                <span>{{ movie.release_date }}</span>
                 <span>{{ movie.runtime }} min</span>
             </div>
 
@@ -82,8 +82,8 @@
             <div class="glass-panel info-panel-inner">
                 <div class="stats-grid">
                     <div>
-                        <strong>Budget:</strong> ${{ movie.budget_formatted }}<br>
-                        <strong>Revenue:</strong> ${{ movie.revenue_formatted }}<br>
+                        <strong>Budget:</strong> ${{ movie.budget | format_number }}<br>
+                        <strong>Revenue:</strong> ${{ movie.revenue | format_number }}<br>
                         <strong>Status:</strong> {{ movie.status }}
                     </div>
                     <div>
@@ -113,7 +113,7 @@
                 <div class="title-text" title="{{ rec.title }}">{{ rec.title }}</div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span class="subtitle-text">{{ rec.year }}</span>
-                    <span class="rating-badge">★ {{ rec.vote_average_formatted }}</span>
+                    <span class="rating-badge">★ {{ rec.vote_average | format_float }}</span>
                 </div>
             </div>
         </a>

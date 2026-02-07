@@ -107,24 +107,18 @@ def get_movie_details(identifier, df):
                 elif details[field] == 0 and field in ['budget', 'revenue']:
                     details[field] = None
         
-        # Format release_date
+        # Release date formatting can stay as it's often needed in data, but purely UI strings should go
         if 'release_date' in details and details['release_date']:
             try:
                 if isinstance(details['release_date'], str):
                     date_obj = datetime.strptime(details['release_date'], '%Y-%m-%d')
-                    details['release_date_formatted'] = date_obj.strftime('%B %d, %Y')
                     details['year'] = str(date_obj.year)
                 else:
-                    details['release_date_formatted'] = str(details['release_date'])
                     details['year'] = 'N/A'
             except:
-                details['release_date_formatted'] = str(details['release_date'])
                 details['year'] = 'N/A'
         
         details['poster_url'] = get_poster_url(details.get('poster_path'))
-        details['vote_average_formatted'] = format_float(details.get('vote_average'))
-        details['budget_formatted'] = format_number(details.get('budget'))
-        details['revenue_formatted'] = format_number(details.get('revenue'))
         
         return details
     return None
