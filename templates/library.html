@@ -3,21 +3,14 @@
 {% block title %}My Library - Movie Recommender{% endblock %}
 
 {% block content %}
-<h2 style="margin-bottom: 20px;">📚 My Movie Library</h2>
+<h2 class="mb-20">📚 My Movie Library</h2>
 
 <div class="glass-panel">
     <!-- Tabs Navigation -->
-    <div
-        style="display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
-        <button onclick="openTab(event, 'ToWatch')" class="tab-link active"
-            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px; border-bottom: 2px solid #7c3aed;">📌
-            To Watch</button>
-        <button onclick="openTab(event, 'Watched')" class="tab-link"
-            style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px;">✅
-            Watched</button>
-        <button onclick="openTab(event, 'Ratings')" class="tab-link"
-            style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.1rem; font-weight: 600; padding: 5px 10px;">⭐
-            My Ratings</button>
+    <div class="tabs-nav">
+        <button onclick="openTab(event, 'ToWatch')" class="tab-link active">📌 To Watch</button>
+        <button onclick="openTab(event, 'Watched')" class="tab-link">✅ Watched</button>
+        <button onclick="openTab(event, 'Ratings')" class="tab-link">⭐ My Ratings</button>
     </div>
 
     <!-- To Watch Tab -->
@@ -29,7 +22,7 @@
                     <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
                     <div class="movie-info">
                         <div class="title-text">{{ movie.title }}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="d-flex justify-between align-center">
                             <span class="subtitle-text">{{ movie.year }}</span>
                             <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
                         </div>
@@ -51,7 +44,7 @@
                     <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
                     <div class="movie-info">
                         <div class="title-text">{{ movie.title }}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="d-flex justify-between align-center">
                             <span class="subtitle-text">{{ movie.year }}</span>
                             <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
                         </div>
@@ -73,9 +66,11 @@
                     <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
                     <div class="movie-info">
                         <div class="title-text">{{ movie.title }}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="d-flex justify-between align-center">
                             <span class="subtitle-text">{{ movie.year }}</span>
-                            <span class="rating-badge" style="background: #eab308;">⭐ {{ movie.user_rating }}</span>
+                            <span class="rating-badge"
+                                style="background: #eab308; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.3);">⭐ {{
+                                movie.user_rating }}</span>
                         </div>
                     </div>
                 </a>
@@ -96,14 +91,11 @@
         }
         tablinks = document.getElementsByClassName("tab-link");
         for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].className = tablinks[i].className.replace(" active", "");
-            tablinks[i].style.borderBottom = "none";
-            tablinks[i].style.color = "rgba(255,255,255,0.6)";
+            tablinks[i].classList.remove("active");
         }
         document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
-        evt.currentTarget.style.borderBottom = "2px solid #7c3aed";
-        evt.currentTarget.style.color = "white";
+        evt.currentTarget.classList.add("active");
     }
 </script>
+
 {% endblock %}

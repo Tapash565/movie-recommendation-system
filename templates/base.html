@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/style.css">
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     <nav class="navbar">
         <a href="/" class="logo">
@@ -15,13 +17,13 @@
         <div class="nav-links">
             <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Home</a>
             {% if user %}
-                <a href="/library" class="nav-link {% if active_page == 'library' %}active{% endif %}">My Library</a>
-                <span class="nav-link" style="opacity: 0.5;">|</span>
-                <span class="nav-link">Welcome, {{ user }}</span>
-                <a href="/logout" class="nav-link" style="color: #ef4444;">Logout</a>
+            <a href="/library" class="nav-link {% if active_page == 'library' %}active{% endif %}">My Library</a>
+            <span class="nav-link nav-sep" style="opacity: 0.5;">|</span>
+            <span class="nav-link">Welcome, {{ user }}</span>
+            <a href="/logout" class="nav-link" style="color: #ef4444;">Logout</a>
             {% else %}
-                <a href="/login" class="nav-link {% if active_page == 'login' %}active{% endif %}">Login</a>
-                <a href="/signup" class="nav-link {% if active_page == 'signup' %}active{% endif %}">Sign Up</a>
+            <a href="/login" class="nav-link {% if active_page == 'login' %}active{% endif %}">Login</a>
+            <a href="/signup" class="nav-link {% if active_page == 'signup' %}active{% endif %}">Sign Up</a>
             {% endif %}
         </div>
     </nav>
@@ -38,9 +40,10 @@
             var x = document.getElementById("toast");
             x.textContent = message;
             x.className = "toast show";
-            setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+            setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
         }
     </script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

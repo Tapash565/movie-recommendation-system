@@ -3,7 +3,7 @@
 {% block title %}{{ movie.title }} - Movie Recommender{% endblock %}
 
 {% block content %}
-<div style="margin-top: 20px;">
+<div class="glass-panel" style="margin-top: 20px; border: none; background: transparent;">
     {% if user %}
     <a href="javascript:history.back()" class="btn-secondary">← Back</a>
     {% else %}
@@ -11,18 +11,17 @@
     {% endif %}
 </div>
 
-<div class="glass-panel" style="margin-top: 20px;">
-    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+<div class="glass-panel">
+    <div class="details-flex">
         <!-- Left: Poster -->
-        <div style="flex: 1; min-width: 300px; max-width: 400px;">
-            <img src="{{ movie.poster_url }}" alt="{{ movie.title }}"
-                style="width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div class="poster-section">
+            <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="poster-img">
 
             {% if user %}
             <!-- Library Actions -->
-            <div style="margin-top: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;">
+            <div class="library-box">
                 <h4 style="margin-bottom: 10px;">Your Library</h4>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="library-actions">
                     <button onclick="toggleBookmark('{{ movie.id }}', '{{ movie.title|escape }}', 'to_watch')"
                         class="btn-primary {% if bookmark_status == 'to_watch' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
                         id="btn-to-watch" style="flex: 1;">
@@ -39,7 +38,7 @@
                 </div>
 
                 <h4 style="margin-bottom: 5px;">Your Rating</h4>
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="rating-box">
                     <input type="range" id="rating-slider" min="0" max="10" step="0.5"
                         value="{{ user_rating | default(0) }}" style="flex: 1;">
                     <span id="rating-value" style="font-weight: bold; width: 40px;">{{ user_rating | default(0)
@@ -49,8 +48,7 @@
                 </div>
             </div>
             {% else %}
-            <div
-                style="margin-top: 20px; padding: 15px; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; text-align: center;">
+            <div class="guest-prompt">
                 <p style="margin: 0;">💡 <a href="/login" style="color: #7c3aed; font-weight: bold;">Login</a> to
                     bookmark and rate movies!</p>
             </div>
@@ -58,13 +56,13 @@
         </div>
 
         <!-- Right: Details -->
-        <div style="flex: 2; min-width: 300px;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px;">{{ movie.title }}</h1>
+        <div class="info-section">
+            <h1 class="movie-title-large">{{ movie.title }}</h1>
             {% if movie.tagline %}
             <p style="font-style: italic; color: #a0a0a0; font-size: 1.1rem;">{{ movie.tagline }}</p>
             {% endif %}
 
-            <div style="margin: 20px 0; display: flex; gap: 15px; align-items: center;">
+            <div style="margin: 20px 0; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                 <span class="rating-badge">IMDb {{ movie.vote_average_formatted }}</span>
                 <span>{{ movie.release_date_formatted }}</span>
                 <span>{{ movie.runtime }} min</span>
@@ -81,8 +79,8 @@
                 {{ movie.overview }}
             </p>
 
-            <div class="glass-panel" style="background: rgba(0,0,0,0.2);">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="glass-panel info-panel-inner">
+                <div class="stats-grid">
                     <div>
                         <strong>Budget:</strong> ${{ movie.budget_formatted }}<br>
                         <strong>Revenue:</strong> ${{ movie.revenue_formatted }}<br>
@@ -101,6 +99,7 @@
         </div>
     </div>
 </div>
+
 
 <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 40px 0;">
 

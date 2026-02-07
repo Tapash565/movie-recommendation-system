@@ -5,7 +5,7 @@
 {% block content %}
 <div class="hero-section">
     <h1>🎬 Discover Your Next Favorite Movie</h1>
-    <p style="font-size: 1.2rem; color: #a0a0a0;">
+    <p class="hero-p">
         Explore thousands of movies and get personalized recommendations powered by AI.
     </p>
 </div>
@@ -31,13 +31,12 @@
                 <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}">
                 <div class="movie-info">
                     <div class="title-text" title="{{ movie.title }}">{{ movie.title }}</div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div class="d-flex justify-between align-center mb-10">
                         <span class="subtitle-text">{{ movie.year }}</span>
                         <span class="rating-badge">★ {{ movie.vote_average_formatted }}</span>
                     </div>
-                    <a href="/movie/{{ movie.id }}" class="btn-primary"
-                        style="text-align: center; display: block;">Details</a>
+                    <a href="/movie/{{ movie.id }}" class="btn-primary text-center w-100"
+                        style="display: block;">Details</a>
                 </div>
             </a>
         </div>
