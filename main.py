@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import database as db
 import services
 from logger import get_logger
-from routers import auth, movies, users
+from routers import auth, movies, users, recommendations
 
 # Suppress unnecessary logs but don't ignore warnings globally
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -67,6 +67,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.router)
 app.include_router(movies.router)
 app.include_router(users.router)
+app.include_router(recommendations.router)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -17,6 +17,7 @@
         <div class="nav-links">
             <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Home</a>
             {% if user %}
+            <a href="/discover" class="nav-link {% if active_page == 'discover' %}active{% endif %}">Discover</a>
             <a href="/library" class="nav-link {% if active_page == 'library' %}active{% endif %}">My Library</a>
             <span class="nav-link nav-sep" style="opacity: 0.5;">|</span>
             <span class="nav-link">Welcome, {{ user }}</span>
