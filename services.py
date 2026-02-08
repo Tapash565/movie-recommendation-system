@@ -268,3 +268,69 @@ def load_retriever(path='movie_recommendation_faiss'):
         except Exception as re:
             logger.error(f"Critical error: Could not recreate index: {re}")
             return None
+
+def get_personalized_recommendations(user_library_ids, df, retriever, limit=15):
+    """
+    Generate personalized recommendations based on user's library.
+    
+    Args:
+        user_library_ids: List of movie IDs in user's library (watched/rated)
+        df: Movie dataframe
+        retriever: FAISS retriever for similarity search
+        limit: Number of recommendations to return (default 15)
+    
+    Returns:
+        List of movie details dictionaries
+    """
+    try:
+        if not user_library_ids or retriever is None:
+            return []
+        
+        # Convert library IDs to titles
+        library_titles = []
+        for movie_id in user_library_ids:
+            details = get_movie_details(movie_id, df)
+            if details:
+                library_titles.append(details['title'])
+        
+        if not library_titles:
+            return []
+        
+        # Collect recommendations from each library movie
+        recommendation_scores = {}
+        
+        for title in library_titles:
+            try:
+                # Get recommendations for this movie
+                recs = get_recommendations(title, df, retriever, k=10)
+                
+                # Score each recommendation (movies appearing more frequently get higher scores)
+                for rec in recs:
+                    movie_id = rec['id']
+                    # Skip if already in library
+                    if movie_id in user_library_ids:
+                        continue
+                    
+                    if movie_id not in recommendation_scores:
+                        recommendation_scores[movie_id] = {
+                            'score': 0,
+                            'details': rec
+                        }
+                    recommendation_scores[movie_id]['score'] += 1
+            except Exception as e:
+                logger.warning(f"Error getting recommendations for {title}: {e}")
+                continue
+        
+        # Sort by score (frequency) and then by vote_average
+        sorted_recommendations = sorted(
+            recommendation_scores.values(),
+            key=lambda x: (x['score'], x['details'].get('vote_average', 0) or 0),
+            reverse=True
+        )
+        
+        # Return top N recommendations
+        return [item['details'] for item in sorted_recommendations[:limit]]
+        
+    except Exception as e:
+        logger.error(f"Error generating personalized recommendations: {e}")
+        return []
