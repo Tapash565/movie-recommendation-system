@@ -22,18 +22,18 @@
             <div class="library-box">
                 <h4 style="margin-bottom: 10px;">Your Library</h4>
                 <div class="library-actions">
-                    <button onclick="toggleBookmark('{{ movie.id }}', '{{ movie.title|escape }}', 'to_watch')"
-                        class="btn-primary {% if bookmark_status == 'to_watch' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
+                    <button data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" data-status="to_watch"
+                        class="btn-bookmark btn-primary {% if bookmark_status == 'to_watch' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
                         id="btn-to-watch" style="flex: 1;">
                         📌 To Watch
                     </button>
-                    <button onclick="toggleBookmark('{{ movie.id }}', '{{ movie.title|escape }}', 'watched')"
-                        class="btn-primary {% if bookmark_status == 'watched' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
+                    <button data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" data-status="watched"
+                        class="btn-bookmark btn-primary {% if bookmark_status == 'watched' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
                         id="btn-watched" style="flex: 1;">
                         ✅ Watched
                     </button>
                     {% if bookmark_status %}
-                    <button onclick="removeBookmark('{{ movie.id }}')" class="btn-danger">❌</button>
+                    <button data-movie-id="{{ movie.id }}" class="btn-remove-bookmark btn-danger">❌</button>
                     {% endif %}
                 </div>
 
@@ -43,8 +43,8 @@
                         value="{{ user_rating | default(0) }}" style="flex: 1;">
                     <span id="rating-value" style="font-weight: bold; width: 40px;">{{ user_rating | default(0)
                         }}</span>
-                    <button onclick="saveRating('{{ movie.id }}', '{{ movie.title|escape }}')"
-                        class="btn-secondary">Save</button>
+                    <button data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}"
+                        class="btn-save-rating btn-secondary">Save</button>
                 </div>
             </div>
             {% else %}

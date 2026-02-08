@@ -269,7 +269,7 @@ def load_retriever(path='movie_recommendation_faiss'):
             logger.error(f"Critical error: Could not recreate index: {re}")
             return None
 
-def get_personalized_recommendations(user_library_ids, df, retriever, limit=15):
+def get_personalized_recommendations(user_library_ids, df, retriever, limit=16):
     """
     Generate personalized recommendations based on user's library.
     

@@ -59,8 +59,7 @@ async function removeBookmark(movie_id) {
     }
 }
 
-async function saveRating(movie_id, movie_title) {
-    const rating = document.getElementById('rating-slider').value;
+async function saveRating(movie_id, movie_title, rating) {
     try {
         const response = await fetch('/api/rate', {
             method: 'POST',
@@ -86,7 +85,7 @@ async function saveRating(movie_id, movie_title) {
     }
 }
 
-// Update rating value display on slide
+// Update rating value display on slide and setup event listeners
 document.addEventListener('DOMContentLoaded', function () {
     const slider = document.getElementById('rating-slider');
     const display = document.getElementById('rating-value');
@@ -95,4 +94,32 @@ document.addEventListener('DOMContentLoaded', function () {
             display.innerHTML = this.value;
         }
     }
+
+    // Event delegation for bookmark buttons
+    document.querySelectorAll('.btn-bookmark').forEach(button => {
+        button.addEventListener('click', function () {
+            const movieId = this.getAttribute('data-movie-id');
+            const movieTitle = this.getAttribute('data-movie-title');
+            const status = this.getAttribute('data-status');
+            toggleBookmark(movieId, movieTitle, status);
+        });
+    });
+
+    // Event delegation for remove bookmark button
+    document.querySelectorAll('.btn-remove-bookmark').forEach(button => {
+        button.addEventListener('click', function () {
+            const movieId = this.getAttribute('data-movie-id');
+            removeBookmark(movieId);
+        });
+    });
+
+    // Event delegation for save rating button
+    document.querySelectorAll('.btn-save-rating').forEach(button => {
+        button.addEventListener('click', function () {
+            const movieId = this.getAttribute('data-movie-id');
+            const movieTitle = this.getAttribute('data-movie-title');
+            const rating = document.getElementById('rating-slider').value;
+            saveRating(movieId, movieTitle, rating);
+        });
+    });
 });
