@@ -49,7 +49,7 @@ def discover_page(request: Request, df=Depends(get_df), retriever=Depends(get_re
         user_library_ids=list(library_ids),
         df=df,
         retriever=retriever,
-        limit=15
+        limit=16
     )
     
     # Format movie data for display
