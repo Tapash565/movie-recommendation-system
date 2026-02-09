@@ -48,6 +48,36 @@ def search(request: Request, q: str = Query(""), df=Depends(get_df)):
         }
     )
 
+@router.get("/search-page", response_class=HTMLResponse)
+def search_page(
+    request: Request, 
+    q: str = Query(""), 
+    order_by: str = Query(None),
+    df=Depends(get_df)
+):
+    """Render dedicated search page with ordering support."""
+    results = []
+    result_count = 0
+    
+    if q:
+        logger.info(f"Searching for movies with query: '{q}', order_by: '{order_by}'")
+        results = services.search_movies(q, df, limit=24, order_by=order_by)
+        result_count = len(results)
+    
+    return templates.TemplateResponse(
+        request=request, 
+        name="search.html", 
+        context={
+            "search_query": q,
+            "movies": results,
+            "result_count": result_count,
+            "order_by": order_by or "",
+            "user": request.session.get("user"),
+            "active_page": "search"
+        }
+    )
+
+
 @router.get("/movie/{movie_id}", response_class=HTMLResponse)
 def movie_details(
     request: Request, 

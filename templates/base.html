@@ -12,10 +12,11 @@
 <body>
     <nav class="navbar">
         <a href="/" class="logo">
-            <span>🎬</span> Movie Recommender
+            Movie Recommender
         </a>
         <div class="nav-links">
             <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Home</a>
+            <a href="/search-page" class="nav-link {% if active_page == 'search' %}active{% endif %}">Search</a>
             {% if user %}
             <a href="/discover" class="nav-link {% if active_page == 'discover' %}active{% endif %}">Discover</a>
             <a href="/library" class="nav-link {% if active_page == 'library' %}active{% endif %}">My Library</a>
