@@ -123,9 +123,15 @@ def get_movie_details(identifier, df):
         return details
     return None
 
-def search_movies(query, df, limit=12):
+def search_movies(query, df, limit=12, order_by=None):
     """
     Search for movies using a tiered "Smart Search" approach.
+    
+    Args:
+        query: Search query string
+        df: Movie dataframe
+        limit: Maximum number of results to return
+        order_by: Optional ordering - 'rating' (by vote_average desc), 'name' (alphabetical), or None (relevance)
     """
     query = query.strip().lower()
     if not query:
@@ -145,26 +151,61 @@ def search_movies(query, df, limit=12):
 
     # Tier 1: Direct Title Match (Substring or Exact)
     exact_matches = df[df['title'].str.lower() == query]['title'].tolist()
-    if add_unique(exact_matches): return [get_movie_details(t, df) for t in results_ordered]
+    if add_unique(exact_matches): 
+        movies = [get_movie_details(t, df) for t in results_ordered]
+        return _order_movies(movies, order_by)
     
     starts_with = df[df['title'].str.lower().str.startswith(query)]['title'].tolist()
-    if add_unique(starts_with): return [get_movie_details(t, df) for t in results_ordered]
+    if add_unique(starts_with): 
+        movies = [get_movie_details(t, df) for t in results_ordered]
+        return _order_movies(movies, order_by)
     
     contains = df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist()
-    if add_unique(contains): return [get_movie_details(t, df) for t in results_ordered]
+    if add_unique(contains): 
+        movies = [get_movie_details(t, df) for t in results_ordered]
+        return _order_movies(movies, order_by)
 
     # Tier 2: Fuzzy Title Match
     titles_list = df['title'].tolist()
     fuzzy_results = process.extract(query, titles_list, scorer=fuzz.token_set_ratio, limit=limit)
     fuzzy_matches = [match[0] for match in fuzzy_results if match[1] >= 80]
-    if add_unique(fuzzy_matches): return [get_movie_details(t, df) for t in results_ordered]
+    if add_unique(fuzzy_matches): 
+        movies = [get_movie_details(t, df) for t in results_ordered]
+        return _order_movies(movies, order_by)
 
     # Tier 3: Keyword Match
     if 'keywords' in df.columns:
         keyword_matches = df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist()
-        if add_unique(keyword_matches): return [get_movie_details(t, df) for t in results_ordered]
+        if add_unique(keyword_matches): 
+            movies = [get_movie_details(t, df) for t in results_ordered]
+            return _order_movies(movies, order_by)
 
-    return [get_movie_details(t, df) for t in results_ordered]
+    movies = [get_movie_details(t, df) for t in results_ordered]
+    return _order_movies(movies, order_by)
+
+def _order_movies(movies, order_by):
+    """
+    Helper function to order movie results.
+    
+    Args:
+        movies: List of movie detail dictionaries
+        order_by: 'rating', 'name', or None
+    
+    Returns:
+        Ordered list of movies
+    """
+    if not movies:
+        return movies
+    
+    if order_by == 'rating':
+        # Sort by vote_average descending (highest rated first)
+        return sorted(movies, key=lambda x: x.get('vote_average') or 0, reverse=True)
+    elif order_by == 'name':
+        # Sort alphabetically by title
+        return sorted(movies, key=lambda x: x.get('title', '').lower())
+    else:
+        # Keep relevance-based ordering (default)
+        return movies
 
 def get_recommendations(title, df, retriever, k=5):
     try:

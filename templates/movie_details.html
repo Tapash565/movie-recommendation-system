@@ -25,12 +25,12 @@
                     <button data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" data-status="to_watch"
                         class="btn-bookmark btn-primary {% if bookmark_status == 'to_watch' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
                         id="btn-to-watch" style="flex: 1;">
-                        📌 To Watch
+                        To Watch
                     </button>
                     <button data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" data-status="watched"
                         class="btn-bookmark btn-primary {% if bookmark_status == 'watched' %}bg-gradient-primary{% else %}bg-transparent-secondary{% endif %}"
                         id="btn-watched" style="flex: 1;">
-                        ✅ Watched
+                        Watched
                     </button>
                     {% if bookmark_status %}
                     <button data-movie-id="{{ movie.id }}" class="btn-remove-bookmark btn-danger">❌</button>
