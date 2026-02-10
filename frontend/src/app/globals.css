@@ -92,3 +92,40 @@ input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.2);
   box-shadow: 0 4px 12px rgba(250, 204, 21, 0.5);
 }
+
+/* Mobile Utilities */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .touch-feedback {
+    @apply active:scale-95 active:bg-white/20 transition-all;
+  }
+  
+  /* Safe area for notched devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Mobile-optimized scrollbars */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Prevent body scroll when sidebar is open */
+body.sidebar-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
