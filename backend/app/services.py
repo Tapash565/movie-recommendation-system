@@ -238,6 +238,63 @@ def _order_movies(movies, order_by):
         # Keep relevance-based ordering (default)
         return movies
 
+def get_all_movies(df, page=1, limit=50, order_by=None):
+    """
+    Get all movies with pagination and sorting.
+    
+    Args:
+        df: Movie dataframe
+        page: Page number (1-indexed)
+        limit: Maximum number of results per page
+        order_by: Optional ordering - 'rating' (by vote_average desc), 'name' (alphabetical), 'date' (release_date desc), or None
+    
+    Returns:
+        Dictionary with movies list and pagination metadata
+    """
+    if df.empty:
+        return {
+            'movies': [],
+            'total_count': 0,
+            'page': page,
+            'limit': limit,
+            'total_pages': 0,
+            'order_by': order_by or ''
+        }
+    
+    # Get all movie IDs
+    all_ids = df['id'].tolist()
+    total_count = len(all_ids)
+    total_pages = math.ceil(total_count / limit)
+    
+    # Ensure page is within bounds
+    page = max(1, min(page, total_pages if total_pages > 0 else 1))
+    
+    # Get all movies as dictionaries
+    all_movies = [get_movie_details(movie_id, df) for movie_id in all_ids]
+    all_movies = [m for m in all_movies if m is not None]  # Filter out None values
+    
+    # Apply sorting
+    if order_by == 'rating':
+        all_movies = sorted(all_movies, key=lambda x: x.get('vote_average') or 0, reverse=True)
+    elif order_by == 'name':
+        all_movies = sorted(all_movies, key=lambda x: x.get('title', '').lower())
+    elif order_by == 'date':
+        # Sort by release_date descending (newest first)
+        all_movies = sorted(all_movies, key=lambda x: x.get('release_date') or '', reverse=True)
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    paginated_movies = all_movies[offset:offset + limit]
+    
+    return {
+        'movies': paginated_movies,
+        'total_count': total_count,
+        'page': page,
+        'limit': limit,
+        'total_pages': total_pages,
+        'order_by': order_by or ''
+    }
+
 def get_recommendations(title, df, retriever, k=5):
     try:
         title = title.strip()
