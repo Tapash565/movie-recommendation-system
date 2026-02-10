@@ -8,7 +8,7 @@ import pandas as pd
 import ast
 from datetime import datetime
 from langchain_core.documents import Document
-from logger import get_logger
+from .logger import get_logger
 from pathlib import Path
 
 # Initialize logger for services
