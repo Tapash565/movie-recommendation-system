@@ -25,6 +25,11 @@ def get_recommendations_page(
     if not user_id:
         logger.warning("Unauthorized access attempt to discover page.")
         raise HTTPException(status_code=401, detail="Please login to view personalized recommendations")
+    
+    # Check if data is available
+    if df.empty:
+        logger.error("Movie data not available - returning empty recommendations")
+        return []
         
     logger.info(f"User '{username}' (ID: {user_id}) is viewing discover page.")
     

@@ -24,6 +24,16 @@ def get_library(request: Request, df=Depends(get_df)):
         
     logger.info(f"User '{username}' (ID: {user_id}) is viewing their library.")
     
+    # Check if data is available
+    if df.empty:
+        logger.error("Movie data not available - returning empty library")
+        return {
+            "user": username,
+            "to_watch": [],
+            "watched": [],
+            "rated_movies": []
+        }
+    
     # Get user data
     bookmarks_raw = db.get_user_bookmarks(user_id)
     ratings_raw = db.get_user_ratings(user_id)

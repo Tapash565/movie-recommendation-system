@@ -1,7 +1,6 @@
 import os
 import warnings
 from contextlib import asynccontextmanager
-
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -39,6 +38,13 @@ async def lifespan(app: FastAPI):
     # Load basic data on startup
     logger.info("Initializing Movie Recommendation System...")
     app.state.df = services.load_movie_data()
+    
+    # Validate data loaded successfully
+    if app.state.df.empty:
+        logger.critical("CRITICAL: Movie data failed to load! Application will have limited functionality.")
+        logger.critical("Please ensure backend/data/movie_list.pkl exists and is accessible.")
+    else:
+        logger.info(f"Successfully loaded {len(app.state.df)} movies.")
     
     # Lazy load retriever later
     app.state.retriever = None
