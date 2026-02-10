@@ -109,6 +109,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.env.*
 env/
 venv/
 ENV/
@@ -135,6 +136,7 @@ dmypy.json
 .pyre/
 
 # Dataset and notebook files
-Data/
+# Only ignore the source Data/ directory at root, not backend/data/
+/Data/
 *.ipynb
 .vscode/

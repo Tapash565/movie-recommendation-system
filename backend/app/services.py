@@ -261,13 +261,13 @@ def load_movie_data(path=MOVIE_LIST_PATH):
         return joblib.load(path)
     except Exception as e:
         logger.error(f"Error loading movie list: {e}")
-        return []
+        return pd.DataFrame()  # Return empty DataFrame, not empty list
 
 def create_faiss_index(df, path=FAISS_INDEX_PATH):
     """Create a new FAISS index from the movie dataframe."""
     logger.info("Creating new FAISS index. This may take a few minutes...")
     try:
-        if df is None or (isinstance(df, list) and not df):
+        if df is None or df.empty:
             logger.error("Cannot create index: Movie data is empty.")
             return None
 

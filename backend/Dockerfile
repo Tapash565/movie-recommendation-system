@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app /code/app
 COPY data /code/data
-COPY .env /code/.env
+# Copy .env if it exists (optional for local builds)
+COPY .env* /code/ 2>/dev/null || true
 
 EXPOSE 8000
 

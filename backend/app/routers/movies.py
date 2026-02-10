@@ -15,6 +15,11 @@ router = APIRouter()
 @router.get("/api/movies/trending", response_model=List[Movie])
 def get_trending_movies(request: Request, df=Depends(get_df)):
     """Get trending movies (random sample of 12)."""
+    # Check if data is available
+    if df.empty:
+        logger.error("Movie data not available - returning empty list")
+        return []
+    
     # Sample 12 random movies
     trending = df.sample(min(12, len(df)))
     trending_movies = []
@@ -35,6 +40,16 @@ def search_movies(
     """Search for movies."""
     results = []
     result_count = 0
+    
+    # Check if data is available
+    if df.empty:
+        logger.error("Movie data not available - returning empty results")
+        return {
+            "search_query": q,
+            "movies": [],
+            "result_count": 0,
+            "order_by": order_by or ""
+        }
     
     if q:
         logger.info(f"Searching for movies with query: '{q}', order_by: '{order_by}'")
