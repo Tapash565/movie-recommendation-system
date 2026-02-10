@@ -1,78 +1,105 @@
-# Movie Recommendation System - FastAPI Deployment
+# Movie Recommendation System
 
-This project is a movie recommendation web application built with **FastAPI**. It features a modern, responsive UI, robust search capabilities, and personalized recommendations powered by a FAISS vector store.
+A modern, full-stack movie recommendation system built with **FastAPI** (Backend) and **Next.js** (Frontend). It features personalized recommendations using FAISS, a robust search engine, and a premium "Cyberpunk/Neon" UI.
 
-## 📁 Directory Structure
+## 🏗 Architecture
 
-```
+The project is structured as a monorepo with separate services for the frontend and backend:
+
+```bash
 movie_recommendation_system_deployment/
 │
-├── main.py                          # FastAPI Application Entry Point
-├── services.py                      # Core Business Logic (Search, Recommendations)
-├── database.py                      # PostgreSQL Database Management
-├── requirements.txt                 # Python Dependencies
-├── test_main.py                     # API Integration Tests
+├── backend/                 # FastAPI (Python 3.11)
+│   ├── app/                 # Application Code
+│   ├── data/                # Movie Data & FAISS Index
+│   └── Dockerfile           # Production Dockerfile
 │
-├── routers/                         # API Routers
-│   ├── auth.py                      # Authentication (Login/Signup/Logout)
-│   ├── movies.py                    # Movie Browsing & Details
-│   └── users.py                     # Library Management (Bookmarks/Ratings)
+├── frontend/                # Next.js 15 (React 19)
+│   ├── src/                 # Components, Pages, & Lib
+│   └── Dockerfile           # Standalone Production Build
 │
-├── templates/                       # Jinja2 HTML Templates
-│   ├── base.html                    # Layout Template
-│   ├── index.html                   # Home & Search Results
-│   ├── ...                          # Other pages
+├── .github/workflows/       # CI/CD Pipelines
+│   ├── backend-ci.yml       # Backend Validation
+│   └── frontend-ci.yml      # Frontend Validation
 │
-├── static/                          # Static Assets
-│   ├── css/style.css                # Glassmorphism Styles
-│   └── js/main.js                   # Client-side Interactions
-│
-├── movie_recommendation_faiss/      # FAISS Vector Store
-├── movie_list.pkl                   # Processed Movie Data
+└── docker-compose.yml       # Local Development Orchestration
 ```
 
-## 🎯 Features
+## 🚀 Getting Started
 
-### Web Interface
-- **Glassmorphism UI**: A modern, dark-themed interface with translucent panels and smooth transitions.
-- **Server-Side Rendering (SSR)**: Standard HTML/CSS for better SEO and performance, powered by Jinja2.
-- **Interactive**: JavaScript-powered actions for bookmarking and rating without full page reloads.
+### Prerequisites
+- **Docker Desktop** (Recommended)
+- **Node.js 20+** (For local frontend dev)
+- **Python 3.11+** (For local backend dev)
 
-### User Features
-- **Smart Search**: Finds movies by exact title, fuzzy match (typos), or keywords.
-- **Recommendations**: Content-based recommendations using vector similarity.
-- **Library**: Save movies to "To Watch" or "Watched" and rate them.
-- **Authentication**: secure login and signup functionality.
+### 1. Environment Setup
 
-## 🚀 Usage
+Copy the example environment files and fill in your credentials:
 
-### 1. Install Dependencies
+**Backend:**
 ```bash
+cp backend/.env.example backend/.env
+```
+*Required: `DATABASE_URL`, `SECRET_KEY`, `HUGGINGFACEHUB_API_TOKEN`*
+
+**Frontend:**
+```bash
+cp frontend/.env.example frontend/.env
+```
+*Required: `NEXT_PUBLIC_API_URL=http://localhost:8000/api`*
+
+---
+
+### 2. Run with Docker Compose (Recommended)
+
+The easiest way to run the full stack is via Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+- **Frontend:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+### 3. Run Locally (Manual)
+
+If you prefer running services individually without Docker:
+
+**Backend (Terminal 1):**
+```bash
+cd backend
+python -m venv venv
+# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
-*Note: Ensure you have `rapidfuzz` installed if it's not picked up automatically.*
 
-### 2. Run the Application
-Start the development server using Uvicorn:
+**Frontend (Terminal 2):**
 ```bash
-uvicorn main:app --reload --port 8000
-```
-The app will be available at [http://localhost:8000](http://localhost:8000).
-
-### 3. Run Tests
-Verify the code correctness using `pytest`:
-```bash
-pytest test_main.py
+cd frontend
+npm install
+npm run dev
 ```
 
-## 🐳 Docker Deployment
-(Optional) To run via Docker, ensure your `Dockerfile` exposes port 8000.
-```bash
-docker build -t movie-recommender .
-docker run -p 8000:8000 movie-recommender
-```
+## 🛠 Deployment
 
-## 📝 Notes
-- **App Architecture**: Moved from Streamlit (single script) to FastAPI (MVC-like pattern) for better scalability and separation of concerns.
-- **Database**: Uses PostgreSQL for storing user data. Ensure your `.env` has valid DB credentials.
-- **Model Loading**: The ML models (FAISS) are loaded once during application startup for efficiency.
+### Backend (Render)
+- **Repo:** Connect this repository.
+- **Root Directory:** `backend`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port 10000`
+- **Environment:** Set `PYTHON_VERSION` to `3.11.0`.
+
+### Frontend (Vercel)
+- **Repo:** Connect this repository.
+- **Root Directory:** `frontend`
+- **Framework Preset:** Next.js
+- **Environment Variables:** Set `NEXT_PUBLIC_API_URL` to your production backend URL.
+
+## 🧪 CI/CD
+
+GitHub Actions automatically validate pull requests:
+- **Backend CI:** Linting & Docker Build test.
+- **Frontend CI:** Build check & Docker Standalone conversion test.

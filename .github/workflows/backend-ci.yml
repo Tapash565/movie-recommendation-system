@@ -1,0 +1,36 @@
+name: Backend CI (FastAPI)
+
+on:
+  push:
+    paths:
+      - "backend/**"
+  pull_request:
+    paths:
+      - "backend/**"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      # Adjusted import test to set PYTHONPATH
+      - name: Import test
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: python -c "from app.main import app"
+
+      - name: Docker build
+        run: docker build -t movie-recommender-backend ./backend
