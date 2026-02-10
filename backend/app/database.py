@@ -2,7 +2,7 @@ from psycopg2 import pool
 import os
 import bcrypt
 from dotenv import load_dotenv
-from logger import get_logger
+from .logger import get_logger
 
 # Initialize logger for database
 logger = get_logger("database")
