@@ -121,7 +121,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                         <div className="flex gap-4 overflow-x-auto pb-4">
                             {movie.cast.slice(0, 10).map((actor, i) => (
                                 <div key={i} className="min-w-[120px] bg-white/5 p-3 rounded-xl text-center">
-                                    <div className="w-full h-16 bg-gray-700 rounded-full mb-2 mx-auto"></div> {/* Placeholder avatar */}
                                     <p className="text-sm font-medium">{actor}</p>
                                 </div>
                             ))}
@@ -167,18 +166,49 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
                     <div className="glass-panel p-6">
                         <h3 className="text-xl font-bold mb-4">Rate this Movie</h3>
-                        <div className="flex justify-center gap-2 text-3xl">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                    key={star}
-                                    className={`transition-colors ${star <= (movie.user_rating || 0) ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400/50'}`}
-                                    onClick={() => handleRate(star)}
-                                >
-                                    ★
-                                </button>
-                            ))}
+                        
+                        <div className="space-y-4">
+                            {/* Visual Rating Display */}
+                            <div className="text-center">
+                                <div className="text-5xl font-bold text-yellow-400">
+                                    {movie.user_rating || 0}
+                                </div>
+                                <div className="text-gray-400 text-sm">out of 10</div>
+                            </div>
+                            
+                            {/* Slider Input */}
+                            <div className="relative">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="10"
+                                    step="0.5"
+                                    value={movie.user_rating || 0}
+                                    onChange={(e) => handleRate(parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                    style={{
+                                        background: `linear-gradient(to right, #facc15 0%, #facc15 ${((movie.user_rating || 0) / 10) * 100}%, #374151 ${((movie.user_rating || 0) / 10) * 100}%, #374151 100%)`
+                                    }}
+                                />
+                                
+                                {/* Scale Labels */}
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>0</span>
+                                    <span>2.5</span>
+                                    <span>5</span>
+                                    <span>7.5</span>
+                                    <span>10</span>
+                                </div>
+                            </div>
+                            
+                            {/* Helper Text */}
+                            <p className="text-center text-gray-400 text-sm">
+                                {movie.user_rating ? 
+                                    `You rated this movie ${movie.user_rating}/10` : 
+                                    'Slide to rate'
+                                }
+                            </p>
                         </div>
-                        {movie.user_rating && <p className="text-center text-gray-400 mt-2">You rated: {movie.user_rating} stars</p>}
                     </div>
                 </div>
             </div>
