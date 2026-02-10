@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
-from schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest
+from ..schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest
 
-import services
-import database as db
-from dependencies import get_df
-from logger import get_logger
+from .. import services
+from .. import database as db
+from ..dependencies import get_df
+from ..logger import get_logger
+
 
 # Initialize logger for users
 logger = get_logger("users")

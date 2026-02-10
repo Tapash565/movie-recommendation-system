@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from typing import List
-from schemas import Movie
+from ..schemas import Movie
 
-import services
-import database as db
-from dependencies import get_df, get_retriever
-from logger import get_logger
+from .. import services
+from .. import database as db
+from ..dependencies import get_df, get_retriever
+from ..logger import get_logger
 
 # Initialize logger for recommendations
 logger = get_logger("recommendations")

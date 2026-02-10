@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
-from schemas import UserLogin, UserCreate
+from ..schemas import UserLogin, UserCreate
 
-import database as db
-from logger import get_logger
+from .. import database as db
+from ..logger import get_logger
 
 # Initialize logger for auth
 logger = get_logger("auth")
