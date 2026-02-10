@@ -33,6 +33,14 @@ class SearchResponse(BaseModel):
     result_count: int = 0
     order_by: str = ""
 
+class PaginatedMoviesResponse(BaseModel):
+    movies: List[Movie]
+    total_count: int
+    page: int
+    limit: int
+    total_pages: int
+    order_by: str = ""
+
 class UserBase(BaseModel):
     username: str
 
