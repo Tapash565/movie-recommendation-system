@@ -5,7 +5,7 @@ from .. import services
 from .. import database as db
 from ..dependencies import get_df, get_retriever
 from ..logger import get_logger
-from ..schemas import Movie, SearchResponse, MovieDetail
+from ..schemas import Movie, SearchResponse, MovieDetail, PaginatedMoviesResponse
 
 # Initialize logger for movies
 logger = get_logger("movies")
@@ -28,6 +28,31 @@ def get_trending_movies(request: Request, df=Depends(get_df)):
         trending_movies.append(services.get_movie_details(row['id'], df))
         
     return trending_movies
+
+@router.get("/api/movies/all", response_model=PaginatedMoviesResponse)
+def get_all_movies(
+    request: Request,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    order_by: Optional[str] = None,
+    df=Depends(get_df)
+):
+    """Get all movies with pagination and sorting."""
+    # Check if data is available
+    if df.empty:
+        logger.error("Movie data not available - returning empty list")
+        return {
+            "movies": [],
+            "total_count": 0,
+            "page": page,
+            "limit": limit,
+            "total_pages": 0,
+            "order_by": order_by or ""
+        }
+    
+    logger.info(f"Fetching all movies - page: {page}, limit: {limit}, order_by: {order_by}")
+    result = services.get_all_movies(df, page=page, limit=limit, order_by=order_by)
+    return result
 
 @router.get("/api/movies/search", response_model=SearchResponse)
 def search_movies(
