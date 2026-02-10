@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request, Query, HTTPException, Depends
 from typing import List, Optional
 
-import services
-import database as db
-from dependencies import get_df, get_retriever
-from logger import get_logger
-from schemas import Movie, SearchResponse, MovieDetail
+from .. import services
+from .. import database as db
+from ..dependencies import get_df, get_retriever
+from ..logger import get_logger
+from ..schemas import Movie, SearchResponse, MovieDetail
 
 # Initialize logger for movies
 logger = get_logger("movies")

@@ -9,10 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from starlette.middleware.sessions import SessionMiddleware
 
-import database as db
-import services
-from logger import get_logger
-from routers import auth, movies, users, recommendations
+from . import database as db
+from . import services
+from .logger import get_logger
+from .routers import auth, movies, users, recommendations
 
 # Suppress unnecessary logs but don't ignore warnings globally
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
