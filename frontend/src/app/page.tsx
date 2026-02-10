@@ -97,7 +97,7 @@ export default function Home() {
               name="q"
               placeholder="Search for movies..."
               className="relative w-full bg-[#1e293b] border border-white/10 rounded-2xl px-8 py-4 md:py-5 text-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all shadow-xl touch-target"
-              value={searchQuery}}
+              value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <button
