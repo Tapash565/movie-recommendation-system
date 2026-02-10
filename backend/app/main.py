@@ -67,7 +67,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React frontend
-        "https://movie-recommendation-system-1-lk94.onrender.com"  # Deployed frontend
+        "https://movie-recommendation-system-phi-lac.vercel.app/"  # Deployed frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
