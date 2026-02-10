@@ -58,20 +58,20 @@ app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
 # Middleware
 app.add_middleware(
-    SessionMiddleware, 
-    secret_key=SECRET_KEY, 
-    https_only=False,  # Important for localhost (http)
-    same_site="lax"    # Allows cookies to be sent in top-level navigations (and typically Ajax on same site/localhost)
-)
-app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React frontend
-        "https://movie-recommendation-system-phi-lac.vercel.app/"  # Deployed frontend
+        "https://movie-recommendation-system-phi-lac.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY, 
+    https_only=False,  # Important for localhost (http)
+    same_site="lax"    # Allows cookies to be sent in top-level navigations (and typically Ajax on same site/localhost)
 )
 
 
