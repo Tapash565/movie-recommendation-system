@@ -23,6 +23,7 @@ logger = get_logger("main")
 # Load environment variables
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # "production" or "development"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,12 +57,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
+# Determine if running in production
+IS_PRODUCTION = ENVIRONMENT == "production"
+
 # Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # React frontend
-        "https://movie-recommendation-system-phi-lac.vercel.app"
+        "http://localhost:3000",  # Local development
+        "http://127.0.0.1:3000",  # Local development alternative
+        "https://movie-recommendation-system-phi-lac.vercel.app",  # Vercel production
+        "https://movie-recommendation-system-deployment.vercel.app",  # Vercel alternative
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -69,9 +75,10 @@ app.add_middleware(
 )
 app.add_middleware(
     SessionMiddleware, 
-    secret_key=SECRET_KEY, 
-    https_only=False,  # Important for localhost (http)
-    same_site="lax"    # Allows cookies to be sent in top-level navigations (and typically Ajax on same site/localhost)
+    secret_key=SECRET_KEY,
+    https_only=IS_PRODUCTION,  # True for production HTTPS, False for local HTTP
+    same_site="none" if IS_PRODUCTION else "lax",  # "none" for cross-site, "lax" for local
+    max_age=86400,  # 24 hours session expiration
 )
 
 
