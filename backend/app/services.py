@@ -9,9 +9,36 @@ import ast
 from datetime import datetime
 from langchain_core.documents import Document
 from logger import get_logger
+from pathlib import Path
 
 # Initialize logger for services
 logger = get_logger("services")
+
+# Define Data Paths
+BASE_DIR = Path(__file__).resolve().parent.parent 
+DATA_DIR = BASE_DIR / "data"
+MOVIE_LIST_PATH = DATA_DIR / "movie_list.pkl"
+FAISS_INDEX_PATH = DATA_DIR / "movie_recommendation_faiss"
+
+
+def sanitize_for_json(data):
+    """
+    Recursively clean data to ensure it is JSON compliant.
+    - Replaces NaN/Infinity with None
+    - Handles nested dicts and lists
+    """
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(i) for i in data]
+    elif isinstance(data, float):
+        if math.isnan(data) or math.isinf(data):
+            return 0.0 # Or None, depending on preference. 0.0 is safer for UI math.
+        return data
+    elif pd.isna(data): # Catch numpy.nan, pd.NA, etc.
+        return None
+    return data
+
 
 # Helper functions
 def get_poster_url(poster_path):
@@ -102,10 +129,14 @@ def get_movie_details(identifier, df):
         # Handle numeric fields
         for field in ['budget', 'revenue', 'runtime', 'vote_average', 'vote_count', 'popularity']:
             if field in details:
-                if isinstance(details[field], float) and math.isnan(details[field]):
-                    details[field] = None
-                elif details[field] == 0 and field in ['budget', 'revenue']:
-                    details[field] = None
+                val = details[field]
+                if val is None or (isinstance(val, float) and math.isnan(val)):
+                    details[field] = 0.0 if field in ['vote_average', 'popularity'] else 0
+                elif isinstance(val, (int, float)):
+                    details[field] = val
+                else:
+                    details[field] = 0
+
         
         # Release date formatting can stay as it's often needed in data, but purely UI strings should go
         if 'release_date' in details and details['release_date']:
@@ -120,7 +151,7 @@ def get_movie_details(identifier, df):
         
         details['poster_url'] = get_poster_url(details.get('poster_path'))
         
-        return details
+        return sanitize_for_json(details)
     return None
 
 def search_movies(query, df, limit=12, order_by=None):
@@ -224,7 +255,7 @@ def get_recommendations(title, df, retriever, k=5):
         logger.error(f"Error generating recommendations: {e}")
         return []
 
-def load_movie_data(path='movie_list.pkl'):
+def load_movie_data(path=MOVIE_LIST_PATH):
     """Load the movie dataframe."""
     try:
         return joblib.load(path)
@@ -232,7 +263,7 @@ def load_movie_data(path='movie_list.pkl'):
         logger.error(f"Error loading movie list: {e}")
         return []
 
-def create_faiss_index(df, path='movie_recommendation_faiss'):
+def create_faiss_index(df, path=FAISS_INDEX_PATH):
     """Create a new FAISS index from the movie dataframe."""
     logger.info("Creating new FAISS index. This may take a few minutes...")
     try:
@@ -274,7 +305,7 @@ def create_faiss_index(df, path='movie_recommendation_faiss'):
         logger.error(f"Error creating FAISS index: {e}")
         return None
 
-def load_retriever(path='movie_recommendation_faiss'):
+def load_retriever(path=FAISS_INDEX_PATH):
     """
     Lazy-load the FAISS retriever.
     If missing, attempts to create one from movie_list.pkl.

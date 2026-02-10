@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, HTTPException, Depends
+from typing import List
+from schemas import Movie
 
 import services
 import database as db
-from dependencies import templates, get_df, get_retriever
+from dependencies import get_df, get_retriever
 from logger import get_logger
 
 # Initialize logger for recommendations
@@ -11,19 +12,19 @@ logger = get_logger("recommendations")
 
 router = APIRouter()
 
-@router.get("/discover", response_class=HTMLResponse)
-def discover_page(request: Request, df=Depends(get_df), retriever=Depends(get_retriever)):
-    """Render the personalized recommendations page."""
+@router.get("/api/discover", response_model=List[Movie])
+def get_recommendations_page(
+    request: Request, 
+    df=Depends(get_df), 
+    retriever=Depends(get_retriever)
+):
+    """Get personalized recommendations."""
     user_id = request.session.get("user_id")
     username = request.session.get("user")
     
     if not user_id:
         logger.warning("Unauthorized access attempt to discover page.")
-        return templates.TemplateResponse(
-            request=request, 
-            name="login.html", 
-            context={"error": "Please login to view personalized recommendations"}
-        )
+        raise HTTPException(status_code=401, detail="Please login to view personalized recommendations")
         
     logger.info(f"User '{username}' (ID: {user_id}) is viewing discover page.")
     
@@ -52,17 +53,4 @@ def discover_page(request: Request, df=Depends(get_df), retriever=Depends(get_re
         limit=16
     )
     
-    # Format movie data for display
-    for movie in recommendations:
-        movie['vote_average_formatted'] = services.format_float(movie.get('vote_average'), 1)
-    
-    return templates.TemplateResponse(
-        request=request, 
-        name="recommendations.html", 
-        context={
-            "user": username,
-            "recommendations": recommendations,
-            "has_library": len(library_ids) > 0,
-            "active_page": "discover"
-        }
-    )
+    return recommendations

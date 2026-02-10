@@ -1,0 +1,68 @@
+from pydantic import BaseModel
+from typing import List, Optional, Any
+
+class Movie(BaseModel):
+    id: int
+    title: str
+    year: str
+    poster_url: str
+    vote_average: float
+    vote_count: int
+    popularity: float
+    overview: str
+    genres: List[str]
+    cast: List[str]
+    crew: List[str]
+    keywords: List[str]
+    production_companies: List[str]
+    runtime: Optional[float] = None
+    budget: Optional[float] = None
+    revenue: Optional[float] = None
+
+class MovieDetail(Movie):
+    recommendations: List[Movie] = []
+    bookmark_status: Optional[str] = None
+    user_rating: Optional[float] = None
+
+class MovieListResponse(BaseModel):
+    movies: List[Movie]
+    
+class SearchResponse(BaseModel):
+    search_query: str
+    movies: List[Movie]
+    result_count: int = 0
+    order_by: str = ""
+
+class UserBase(BaseModel):
+    username: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserLogin(UserBase):
+    password: str
+
+class User(UserBase):
+    id: int
+    
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    username: str
+
+class BookmarkRequest(BaseModel):
+    movie_id: int
+    movie_title: str
+    status: str
+
+class RatingRequest(BaseModel):
+    movie_id: int
+    movie_title: str
+    rating: float
+
+class RemoveBookmarkRequest(BaseModel):
+    movie_id: int
+

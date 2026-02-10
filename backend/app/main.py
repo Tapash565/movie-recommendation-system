@@ -6,7 +6,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+
 from starlette.middleware.sessions import SessionMiddleware
 
 import database as db
@@ -51,17 +51,21 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
 # Middleware
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY, 
+    https_only=False,  # Important for localhost (http)
+    same_site="lax"    # Allows cookies to be sent in top-level navigations (and typically Ajax on same site/localhost)
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Static Files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # Include Routers
 app.include_router(auth.router)
