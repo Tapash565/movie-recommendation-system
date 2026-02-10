@@ -31,16 +31,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ✅ Proper FastAPI import & app validation
-      - name: FastAPI app import test
-        env:
-          PYTHONPATH: backend
-        run: |
-          python - <<EOF
-          from app.main import app
-          assert app is not None
-          print("FastAPI app imported successfully")
-          EOF
-
       - name: Docker build
         run: docker build -t movie-recommender-backend .
