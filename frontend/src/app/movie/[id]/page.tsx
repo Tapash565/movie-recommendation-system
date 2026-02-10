@@ -77,7 +77,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     return (
         <div className="min-h-screen pb-20">
             {/* Backdrop / Header */}
-            <div className="relative w-full h-[50vh] md:h-[60vh]">
+            <div className="relative w-full h-[40vh] md:h-[50vh] lg:h-[60vh]">
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/80 to-transparent z-10"></div>
                 {/* We use poster as backdrop for now (blurred) */}
                 <Image
@@ -143,7 +143,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={() => handleBookmark('watched')}
-                                className={`w-full py-3 rounded-xl font-semibold transition-colors ${movie.bookmark_status === 'watched' ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
+                                className={`w-full py-3 rounded-xl font-semibold transition-colors touch-target ${movie.bookmark_status === 'watched' ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
                             >
                                 {movie.bookmark_status === 'watched' ? '✓ Watched' : 'Mark as Watched'}
                             </button>
