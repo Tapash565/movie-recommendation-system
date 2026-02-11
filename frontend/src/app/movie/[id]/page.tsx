@@ -29,14 +29,25 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     const { id } = use(params);
     const [movie, setMovie] = useState<MovieDetail | null>(null);
     const [loading, setLoading] = useState(true);
+    const [localRating, setLocalRating] = useState<number>(0);
     const router = useRouter();
 
     useEffect(() => {
         api.get(`/movies/${id}`)
-            .then((res) => setMovie(res.data))
+            .then((res) => {
+                setMovie(res.data);
+                setLocalRating(res.data.user_rating || 0);
+            })
             .catch((err) => console.error(err))
             .finally(() => setLoading(false));
     }, [id]);
+
+    // Sync local rating when movie.user_rating changes externally
+    useEffect(() => {
+        if (movie) {
+            setLocalRating(movie.user_rating || 0);
+        }
+    }, [movie?.user_rating]);
 
     const handleBookmark = async (status: string) => {
         if (!movie) return;
@@ -171,7 +182,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                             {/* Visual Rating Display */}
                             <div className="text-center">
                                 <div className="text-5xl font-bold text-yellow-400">
-                                    {movie.user_rating || 0}
+                                    {localRating}
                                 </div>
                                 <div className="text-gray-400 text-sm">out of 10</div>
                             </div>
@@ -183,11 +194,13 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                                     min="0"
                                     max="10"
                                     step="0.5"
-                                    value={movie.user_rating || 0}
-                                    onChange={(e) => handleRate(parseFloat(e.target.value))}
+                                    value={localRating}
+                                    onChange={(e) => setLocalRating(parseFloat(e.target.value))}
+                                    onPointerUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
+                                    onMouseUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                                     style={{
-                                        background: `linear-gradient(to right, #facc15 0%, #facc15 ${((movie.user_rating || 0) / 10) * 100}%, #374151 ${((movie.user_rating || 0) / 10) * 100}%, #374151 100%)`
+                                        background: `linear-gradient(to right, #facc15 0%, #facc15 ${(localRating / 10) * 100}%, #374151 ${(localRating / 10) * 100}%, #374151 100%)`
                                     }}
                                 />
                                 
@@ -203,8 +216,8 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                             
                             {/* Helper Text */}
                             <p className="text-center text-gray-400 text-sm">
-                                {movie.user_rating ? 
-                                    `You rated this movie ${movie.user_rating}/10` : 
+                                {localRating > 0 ? 
+                                    `You rated this movie ${localRating}/10` : 
                                     'Slide to rate'
                                 }
                             </p>

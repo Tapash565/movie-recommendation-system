@@ -91,6 +91,12 @@ app.include_router(recommendations.router)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    logger.info(f"Starting server on 0.0.0.0:{port}")
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    logger.info(f"Starting server on 0.0.0.0:{port} (Environment: {ENVIRONMENT})")
+    # Use correct module path and enable reload only in development
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=(ENVIRONMENT == "development")
+    )
 

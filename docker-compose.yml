@@ -5,8 +5,15 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/code/app
+    # Environment variables injected at runtime from .env file
+    # This keeps secrets out of the image layers
     env_file:
       - ./backend/.env
+    # Alternatively, you can use the 'environment:' key:
+    # environment:
+    #   - DATABASE_URL=${DATABASE_URL}
+    #   - SECRET_KEY=${SECRET_KEY}
+    #   - HUGGINGFACEHUB_API_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
 
   frontend:
     build: ./frontend

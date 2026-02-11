@@ -142,6 +142,7 @@ def get_user_id(username):
 def add_bookmark(user_id, movie_id, movie_title, status):
     conn = get_connection()
     if not conn: return False
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -150,23 +151,32 @@ def add_bookmark(user_id, movie_id, movie_title, status):
         ON CONFLICT(user_id, movie_id) DO UPDATE SET status=EXCLUDED.status
         """, (user_id, movie_id, movie_title, status))
         conn.commit()
-        cursor.close()
         return True
     except Exception as e:
+        conn.rollback()
         logger.error(f"Error adding bookmark for user {user_id}, movie {movie_id}: {e}")
         return False
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
 def remove_bookmark(user_id, movie_id):
     conn = get_connection()
-    if not conn: return
+    if not conn: return False
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM bookmarks WHERE user_id = %s AND movie_id = %s", (user_id, movie_id))
         conn.commit()
-        cursor.close()
+        return True
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error removing bookmark for user {user_id}, movie {movie_id}: {e}")
+        return False
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
 def get_user_bookmarks(user_id):

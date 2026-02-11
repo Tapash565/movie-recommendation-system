@@ -606,11 +606,15 @@ h3 {
 
 .mb-20 {
     margin-bottom: 20px;
-    margin-top: 20px;
 }
 
 .mb-30 {
     margin-bottom: 30px;
+}
+
+.my-20 {
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .d-flex {
