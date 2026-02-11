@@ -48,6 +48,8 @@ cp frontend/.env.example frontend/.env
 ```
 *Required: `NEXT_PUBLIC_API_URL=http://localhost:8000/api`*
 
+> **🔒 Security Note:** Environment variables are injected at **runtime** and are never baked into Docker images. The `.env` files are excluded from version control and should never be committed.
+
 ---
 
 ### 2. Run with Docker Compose (Recommended)
@@ -60,6 +62,21 @@ docker-compose up --build
 
 - **Frontend:** [http://localhost:3000](http://localhost:3000)
 - **Backend API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+**Environment Variable Injection:**
+Docker Compose automatically loads environment variables from `backend/.env` via the `env_file` directive. Secrets are never copied into image layers.
+
+**Alternative methods for production:**
+```bash
+# Method 1: Direct environment variables
+docker run -e DATABASE_URL="postgresql://..." -e SECRET_KEY="..." -p 8000:8000 backend
+
+# Method 2: Environment file
+docker run --env-file backend/.env -p 8000:8000 backend
+
+# Method 3: Docker Compose environment key
+# See docker-compose.yml for the environment: configuration example
+```
 
 ---
 
@@ -91,12 +108,40 @@ npm run dev
 - **Build Command:** `pip install -r requirements.txt`
 - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port 10000`
 - **Environment:** Set `PYTHON_VERSION` to `3.11.0`.
+- **🔐 Environment Variables:** Configure via Render's dashboard (never commit to repo):
+  - `DATABASE_URL` - Your database connection string
+  - `SECRET_KEY` - JWT secret key for authentication
+  - `HUGGINGFACEHUB_API_TOKEN` - HuggingFace API token
 
 ### Frontend (Vercel)
 - **Repo:** Connect this repository.
 - **Root Directory:** `frontend`
 - **Framework Preset:** Next.js
-- **Environment Variables:** Set `NEXT_PUBLIC_API_URL` to your production backend URL.
+- **🔐 Environment Variables:** Configure via Vercel dashboard:
+  - `NEXT_PUBLIC_API_URL` - Your production backend URL (e.g., `https://your-api.render.com/api`)
+
+### Other Production Platforms
+
+**Kubernetes:**
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+type: Opaque
+data:
+  DATABASE_URL: <base64-encoded>
+  SECRET_KEY: <base64-encoded>
+```
+
+**AWS ECS/Fargate:**
+Use AWS Secrets Manager or Parameter Store, then reference in task definitions.
+
+**Docker Swarm:**
+```bash
+docker secret create db_url /path/to/db_url.txt
+docker service create --secret db_url backend
+```
 
 ## 🧪 CI/CD
 

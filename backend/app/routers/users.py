@@ -92,8 +92,12 @@ async def remove_bookmark(request: Request, data: RemoveBookmarkRequest):
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     logger.info(f"User '{username}' (ID: {user_id}) removing bookmark for movie ID: {data.movie_id}")
-    db.remove_bookmark(user_id, data.movie_id)
-    return {"success": True}
+    result = db.remove_bookmark(user_id, data.movie_id)
+    
+    if not result:
+        logger.error(f"Failed to remove bookmark for user '{username}' (ID: {user_id}), movie ID: {data.movie_id}")
+    
+    return {"success": result}
 
 @router.post("/api/rate")
 async def rate_movie(request: Request, data: RatingRequest):

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import MobileSidebar from './MobileSidebar';
@@ -42,6 +42,11 @@ export default function Navbar() {
         }
     };
 
+    // Stabilize onClose callback to prevent unnecessary re-renders
+    const handleCloseSidebar = useCallback(() => {
+        setIsSidebarOpen(false);
+    }, []);
+
     const navLinkClass = (path: string) =>
         cn(
             "text-gray-300 hover:text-white transition-colors duration-200 px-3 py-2 rounded-md text-sm font-medium",
@@ -52,7 +57,7 @@ export default function Navbar() {
         <>
             <MobileSidebar
                 isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
+                onClose={handleCloseSidebar}
                 user={user}
                 onLogout={handleLogout}
             />

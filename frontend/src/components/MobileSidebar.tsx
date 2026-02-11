@@ -30,7 +30,7 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
     // Close sidebar on route change
     useEffect(() => {
         onClose();
-    }, [pathname]);
+    }, [pathname, onClose]);
 
     const navLinkClass = (path: string) =>
         cn(

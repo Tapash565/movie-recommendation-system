@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
-import services
+from app.main import app
+import app.services as services
 import joblib
 
 client = TestClient(app)
