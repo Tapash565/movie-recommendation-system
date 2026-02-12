@@ -12,7 +12,7 @@ logger = get_logger("movies")
 
 router = APIRouter()
 
-@router.get("/api/movies/trending", response_model=List[Movie])
+@router.get("/movies/trending", response_model=List[Movie])
 def get_trending_movies(request: Request, df=Depends(get_df)):
     """Get trending movies (random sample of 12)."""
     # Check if data is available
@@ -29,7 +29,7 @@ def get_trending_movies(request: Request, df=Depends(get_df)):
         
     return trending_movies
 
-@router.get("/api/movies/search", response_model=SearchResponse)
+@router.get("/movies/search", response_model=SearchResponse)
 def search_movies(
     request: Request, 
     q: str = Query(""), 
@@ -63,7 +63,7 @@ def search_movies(
         "order_by": order_by or ""
     }
 
-@router.get("/api/movies/{movie_id}", response_model=MovieDetail)
+@router.get("/movies/{movie_id}", response_model=MovieDetail)
 def get_movie_details_api(
     request: Request, 
     movie_id: int, 

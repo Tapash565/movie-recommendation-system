@@ -12,7 +12,7 @@ logger = get_logger("users")
 
 router = APIRouter()
 
-@router.get("/api/library")
+@router.get("/library")
 def get_library(request: Request, df=Depends(get_df)):
     """Get the user's movie library."""
     user_id = request.session.get("user_id")
@@ -67,7 +67,7 @@ def get_library(request: Request, df=Depends(get_df)):
 
 # --- API Endpoints ---
 
-@router.post("/api/bookmark")
+@router.post("/bookmark")
 async def add_bookmark(request: Request, data: BookmarkRequest):
     """API endpoint to add a movie to the user's library."""
     user_id = request.session.get("user_id")
@@ -81,7 +81,7 @@ async def add_bookmark(request: Request, data: BookmarkRequest):
     success = db.add_bookmark(user_id, data.movie_id, data.movie_title, data.status)
     return {"success": success}
 
-@router.post("/api/remove_bookmark")
+@router.post("/remove_bookmark")
 async def remove_bookmark(request: Request, data: RemoveBookmarkRequest):
     """API endpoint to remove a movie from the user's library."""
     user_id = request.session.get("user_id")
@@ -99,7 +99,7 @@ async def remove_bookmark(request: Request, data: RemoveBookmarkRequest):
     
     return {"success": result}
 
-@router.post("/api/rate")
+@router.post("/rate")
 async def rate_movie(request: Request, data: RatingRequest):
     """API endpoint to rate a movie."""
     user_id = request.session.get("user_id")
