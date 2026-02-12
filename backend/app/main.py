@@ -83,11 +83,21 @@ app.add_middleware(
 
 
 
-# Include Routers
-app.include_router(auth.router)
-app.include_router(movies.router)
-app.include_router(users.router)
-app.include_router(recommendations.router)
+# Health check endpoint
+@app.get("/api/health")
+async def health_check():
+    """Check if the API and database are healthy."""
+    db_status = db.check_db_health()
+    return {
+        "status": "healthy" if db_status else "unhealthy",
+        "database": "connected" if db_status else "disconnected"
+    }
+
+# Include Routers with /api prefix
+app.include_router(auth.router, prefix="/api")
+app.include_router(movies.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(recommendations.router, prefix="/api")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

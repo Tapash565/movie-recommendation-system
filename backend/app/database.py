@@ -45,6 +45,29 @@ def release_connection(conn):
     if db_pool and conn:
         db_pool.putconn(conn)
 
+def check_db_health():
+    """Check if the database is connected and responsive."""
+    conn = get_connection()
+    if not conn:
+        return False
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        cursor.close()
+        return True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return False
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        release_connection(conn)
+
 def init_db():
     conn = get_connection()
     if not conn: return

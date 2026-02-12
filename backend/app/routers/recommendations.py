@@ -12,7 +12,7 @@ logger = get_logger("recommendations")
 
 router = APIRouter()
 
-@router.get("/api/discover", response_model=List[Movie])
+@router.get("/discover", response_model=List[Movie])
 def get_recommendations_page(
     request: Request, 
     df=Depends(get_df), 
