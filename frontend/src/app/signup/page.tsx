@@ -23,7 +23,7 @@ export default function SignupPage() {
             } else {
                 setError(authError || 'Signup failed. Please try again.');
             }
-        } catch (err: any) {
+        } catch {
             setError('An unexpected error occurred during signup.');
         } finally {
             setLoading(false);

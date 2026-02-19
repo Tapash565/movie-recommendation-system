@@ -17,6 +17,10 @@ export function useAuth() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!auth) {
+            setLoading(false);
+            return;
+        }
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
@@ -31,11 +35,12 @@ export function useAuth() {
  * Signs up a new user using Firebase.
  */
 export async function signUp(email: string, password: string) {
+    if (!auth) return { user: null, error: "Firebase Authentication is not initialized." };
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         return { user: userCredential.user, error: null };
-    } catch (error: any) {
-        return { user: null, error: error.message };
+    } catch (error) {
+        return { user: null, error: (error as Error).message };
     }
 }
 
@@ -43,11 +48,12 @@ export async function signUp(email: string, password: string) {
  * Signs in an existing user using Firebase.
  */
 export async function signIn(email: string, password: string) {
+    if (!auth) return { user: null, error: "Firebase Authentication is not initialized." };
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return { user: userCredential.user, error: null };
-    } catch (error: any) {
-        return { user: null, error: error.message };
+    } catch (error) {
+        return { user: null, error: (error as Error).message };
     }
 }
 
@@ -55,11 +61,12 @@ export async function signIn(email: string, password: string) {
  * Signs out the current user.
  */
 export async function signOut() {
+    if (!auth) return { error: "Firebase Authentication is not initialized." };
     try {
         await firebaseSignOut(auth);
         return { error: null };
-    } catch (error: any) {
-        return { error: error.message };
+    } catch (error) {
+        return { error: (error as Error).message };
     }
 }
 
