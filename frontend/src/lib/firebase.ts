@@ -12,16 +12,25 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// Initialize Firebase gracefully
+const isConfigValid = !!firebaseConfig.apiKey;
 
-// Initialize Analytics conditionally (only in browser)
+if (!isConfigValid && typeof window !== 'undefined') {
+    console.warn("Firebase configuration is missing. Ensure NEXT_PUBLIC_FIREBASE_API_KEY is set.");
+}
+
+const app = (isConfigValid && getApps().length === 0)
+    ? initializeApp(firebaseConfig)
+    : (getApps().length > 0 ? getApp() : null);
+
+const auth = app ? getAuth(app) : null;
+
+// Initialize Analytics conditionally (only in browser and if app exists)
 let analytics;
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && app) {
     isSupported().then((supported) => {
         if (supported) analytics = getAnalytics(app);
-    });
+    }).catch(err => console.warn("Analytics not supported:", err));
 }
 
 export { app, auth, analytics };

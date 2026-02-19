@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
 import { motion } from 'framer-motion';
-import StarField from '@/components/StarField';
-import TiltCard from '@/components/TiltCard';
 import InfiniteMarquee from '@/components/InfiniteMarquee';
 
 interface Movie {
@@ -63,14 +61,14 @@ export default function Home() {
         className="relative z-10 m-6 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
       >
         <div className="absolute inset-0 bg-[url('https://image.tmdb.org/t/p/original/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg')] bg-cover bg-center opacity-40"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/80 to-transparent"></div>
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/80 to-transparent"></div>
 
         <div className="relative z-10 p-10 md:p-24 flex flex-col items-center text-center">
           <motion.h1
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-5xl md:text-7xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 drop-shadow-lg"
+            className="text-5xl md:text-7xl font-extrabold mb-6 text-transparent bg-clip-text bg-linear-to-r from-cyan-400 via-purple-500 to-pink-500 drop-shadow-lg"
           >
             Cinematic Universe
           </motion.h1>
@@ -91,7 +89,7 @@ export default function Home() {
             action="/search"
             className="relative group w-full max-w-xl"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <div className="absolute -inset-1 bg-linear-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
             <input
               type="text"
               name="q"
@@ -102,7 +100,7 @@ export default function Home() {
             />
             <button
               type="submit"
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white p-3 rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white p-3 rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
               aria-label="Search"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
@@ -124,16 +122,16 @@ export default function Home() {
       {/* Trending Section */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-16">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-white to-gray-400">
             Trending Now
           </h2>
-          <div className="h-1 flex-1 mx-6 bg-gradient-to-r from-white/10 to-transparent rounded-full"></div>
+          <div className="h-1 flex-1 mx-6 bg-linear-to-r from-white/10 to-transparent rounded-full"></div>
         </div>
 
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="aspect-[2/3] bg-gray-800/50 rounded-2xl animate-pulse"></div>
+              <div key={i} className="aspect-2/3 bg-gray-800/50 rounded-2xl animate-pulse"></div>
             ))}
           </div>
         ) : (

@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
 
 interface LoadingScreenProps {
     attempts: number;
@@ -9,13 +8,7 @@ interface LoadingScreenProps {
 }
 
 export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps) {
-    const [showRetry, setShowRetry] = useState(false);
-
-    useEffect(() => {
-        if (attempts > 5) {
-            setShowRetry(true);
-        }
-    }, [attempts]);
+    const showRetry = attempts > 5;
 
     return (
         <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-background overflow-hidden">

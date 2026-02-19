@@ -23,8 +23,8 @@ export default function LoginPage() {
             } else {
                 setError(authError || 'Login failed. Please check your credentials.');
             }
-        } catch (err: any) {
-            setError('An unexpected error occurred during login.');
+        } catch {
+            setError('An unexpected error occurred during signup.');
         } finally {
             setLoading(false);
         }
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
                 <div className="mt-6 text-center space-y-2">
                     <p className="text-gray-400 text-sm">
-                        Don't have an account? <Link href="/signup" className="text-purple-400 hover:text-purple-300">Sign Up</Link>
+                        Don&apos;t have an account? <Link href="/signup" className="text-purple-400 hover:text-purple-300">Sign Up</Link>
                     </p>
                     <Link href="/" className="block text-gray-500 hover:text-gray-400 text-xs transition-colors">
                         ← Back to Home

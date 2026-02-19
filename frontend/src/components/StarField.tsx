@@ -25,7 +25,13 @@ export default function StarField({
         if (!ctx) return;
 
         let animationFrameId: number;
-        let stars: { x: number; y: number; z: number; o: number }[] = [];
+        interface Star {
+            x: number;
+            y: number;
+            z: number;
+            o: number | string;
+        }
+        let stars: Star[] = [];
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
@@ -41,7 +47,7 @@ export default function StarField({
                     y: Math.random() * canvas.height,
                     z: Math.random() * canvas.width,
                     o: '0.' + Math.floor(Math.random() * 99) + 1
-                } as any);
+                });
             }
         };
 

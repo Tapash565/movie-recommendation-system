@@ -20,19 +20,18 @@ function SearchContent() {
 
     const [movies, setMovies] = useState<Movie[]>([]);
     const [loading, setLoading] = useState(false);
-    const [query, setQuery] = useState(q);
 
     useEffect(() => {
         if (q) {
-            setLoading(true);
+            const timer = setTimeout(() => setLoading(true), 0);
             api.get('/movies/search', { params: { q, order_by: orderBy } })
                 .then((res) => setMovies(res.data.movies))
                 .catch((err) => console.error(err))
                 .finally(() => setLoading(false));
+            return () => clearTimeout(timer);
         } else {
-            setMovies([]); // Clear if no query
+            setTimeout(() => setMovies([]), 0);
         }
-        setQuery(q);
     }, [q, orderBy]);
 
     return (
@@ -44,7 +43,7 @@ function SearchContent() {
                     <input
                         type="text"
                         name="q"
-                        defaultValue={query}
+                        defaultValue={q}
                         placeholder="Search..."
                         className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
                     />
@@ -65,9 +64,9 @@ function SearchContent() {
                     </button>
                 </form>
 
-                {query && (
+                {q && (
                     <p className="text-gray-400 mb-6">
-                        Found {movies.length} results for "<span className="text-white">{query}</span>"
+                        Found {movies.length} results for &quot;<span className="text-white">{q}</span>&quot;
                     </p>
                 )}
             </div>
@@ -75,7 +74,7 @@ function SearchContent() {
             {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {[...Array(10)].map((_, i) => (
-                        <div key={i} className="aspect-[2/3] bg-gray-800/50 rounded-xl animate-pulse"></div>
+                        <div key={i} className="aspect-2/3 bg-gray-800/50 rounded-xl animate-pulse"></div>
                     ))}
                 </div>
             ) : (
@@ -87,7 +86,7 @@ function SearchContent() {
                             ))}
                         </div>
                     ) : (
-                        query && <div className="text-center py-20 text-gray-500">No movies found matching your search.</div>
+                        q && <div className="text-center py-20 text-gray-500">No movies found matching your search.</div>
                     )}
                 </>
             )}

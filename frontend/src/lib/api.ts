@@ -13,6 +13,7 @@ const api = axios.create({
 // Request interceptor to add Firebase ID token
 api.interceptors.request.use(
     async (config) => {
+        if (!auth) return config;
         const user = auth.currentUser;
 
         if (user) {
