@@ -33,8 +33,8 @@ async def get_current_user(authorization: str = Header(None)):
         decoded_token = firebase_auth.verify_id_token(token)
         return decoded_token  # Contains uid, email, etc.
     except Exception as e:
-        logger.error(f"Auth verification failed: {str(e)}")
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
+        logger.exception(f"Auth verification failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid authentication token") from e
 
 async def get_optional_user(authorization: Optional[str] = Header(None)):
     """Optional dependency to get Firebase user if token is present, otherwise returns None."""
@@ -49,6 +49,6 @@ async def get_optional_user(authorization: Optional[str] = Header(None)):
         return decoded_token
     except Exception as e:
         # Silently fail for optional user but log the error
-        logger.warning(f"Optional auth verification failed: {str(e)}")
+        logger.exception(f"Optional auth verification failed: {str(e)}")
         return None
 
