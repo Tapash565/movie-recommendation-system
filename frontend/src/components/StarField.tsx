@@ -9,6 +9,12 @@ interface StarFieldProps {
     count?: number;
 }
 
+interface Star {
+    x: number;
+    y: number;
+    z: number;
+}
+
 export default function StarField({
     speed = 0.05,
     backgroundColor = 'transparent',
@@ -25,7 +31,7 @@ export default function StarField({
         if (!ctx) return;
 
         let animationFrameId: number;
-        let stars: { x: number; y: number; z: number; o: number }[] = [];
+        let stars: Star[] = [];
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
@@ -39,9 +45,8 @@ export default function StarField({
                 stars.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    z: Math.random() * canvas.width,
-                    o: '0.' + Math.floor(Math.random() * 99) + 1
-                } as any);
+                    z: Math.random() * canvas.width
+                });
             }
         };
 

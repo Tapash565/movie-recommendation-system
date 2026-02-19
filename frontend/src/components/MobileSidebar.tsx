@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
     isOpen: boolean;
     onClose: () => void;
-    user: { username: string; id: number } | null;
+    user: User | null;
     onLogout: () => void;
 }
 
@@ -36,7 +37,7 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
         cn(
             "flex items-center gap-3 px-6 py-4 rounded-lg transition-all text-base font-medium",
             pathname === path
-                ? "text-white bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500"
+                ? "text-white bg-linear-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500"
                 : "text-gray-300 hover:text-white hover:bg-white/10"
         );
 
@@ -68,9 +69,9 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
-                            <Link 
-                                href="/" 
-                                className="text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
+                            <Link
+                                href="/"
+                                className="text-xl font-bold bg-linear-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
                                 onClick={onClose}
                             >
                                 Movie Recommender
@@ -102,7 +103,7 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
                                 </svg>
                                 Home
                             </Link>
-                            
+
                             <Link href="/search" className={navLinkClass('/search')}>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -118,7 +119,7 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
                                         </svg>
                                         Discover
                                     </Link>
-                                    
+
                                     <Link href="/library" className={navLinkClass('/library')}>
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -138,7 +139,12 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
                                 <>
                                     <div className="px-4 py-3 bg-white/5 rounded-lg">
                                         <p className="text-xs text-gray-400">Signed in as</p>
-                                        <p className="text-sm font-medium text-white mt-1">{user.username}</p>
+                                        <p className="text-sm font-medium text-white mt-1">
+                                            {user.email?.split('@')[0] || user.displayName || 'Guest'}
+                                        </p>
+                                        {user.email && (
+                                            <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => {
@@ -163,7 +169,7 @@ export default function MobileSidebar({ isOpen, onClose, user, onLogout }: Mobil
                                     </Link>
                                     <Link
                                         href="/signup"
-                                        className="block w-full px-6 py-3 text-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors font-medium"
+                                        className="block w-full px-6 py-3 text-center bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors font-medium"
                                     >
                                         Sign Up
                                     </Link>

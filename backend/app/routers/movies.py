@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Request, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 
 from .. import services
 from .. import database as db
-from ..dependencies import get_df, get_retriever
+from ..dependencies import get_df, get_retriever, get_optional_user
 from ..logger import get_logger
 from ..schemas import Movie, SearchResponse, MovieDetail
 
@@ -13,7 +13,7 @@ logger = get_logger("movies")
 router = APIRouter()
 
 @router.get("/movies/trending", response_model=List[Movie])
-def get_trending_movies(request: Request, df=Depends(get_df)):
+def get_trending_movies(df=Depends(get_df)):
     """Get trending movies (random sample of 12)."""
     # Check if data is available
     if df.empty:
@@ -31,7 +31,6 @@ def get_trending_movies(request: Request, df=Depends(get_df)):
 
 @router.get("/movies/search", response_model=SearchResponse)
 def search_movies(
-    request: Request, 
     q: str = Query(""), 
     limit: int = 24,
     order_by: Optional[str] = None,
@@ -65,8 +64,8 @@ def search_movies(
 
 @router.get("/movies/{movie_id}", response_model=MovieDetail)
 def get_movie_details_api(
-    request: Request, 
     movie_id: int, 
+    user=Depends(get_optional_user),
     df=Depends(get_df),
     retriever=Depends(get_retriever)
 ):
@@ -80,17 +79,17 @@ def get_movie_details_api(
     logger.info(f"Generating recommendations for movie: '{movie['title']}' (ID: {movie_id})")
     recommendations = services.get_recommendations(movie['title'], df, retriever)
     
-    # Get user interaction status if logged in
-    # Note: For API, we might rely on token, but if session is still used:
-    user_id = request.session.get("user_id")
+    # Get user interaction status if logged in via Firebase
     bookmark_status = None
     user_rating = 0
     
-    if user_id:
-        bookmark_status = db.get_bookmark(user_id, movie_id)
-        rating_val = db.get_rating(user_id, movie_id)
-        if rating_val is not None:
-            user_rating = rating_val
+    if user:
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            bookmark_status = db.get_bookmark(firebase_uid, movie_id)
+            rating_val = db.get_rating(firebase_uid, movie_id)
+            if rating_val is not None:
+                user_rating = rating_val
             
     # Combine data
     movie_data = movie.copy()
