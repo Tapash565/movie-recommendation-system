@@ -64,13 +64,57 @@ def check_db_health():
                 pass
         release_connection(conn)
 
+def migrate_schema(conn):
+    """Handles migration from legacy integer user_id to firebase_uid TEXT."""
+    cursor = conn.cursor()
+    try:
+        # Check bookmarks table
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='bookmarks' AND column_name='user_id'")
+        has_user_id = cursor.fetchone()
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='bookmarks' AND column_name='firebase_uid'")
+        has_firebase_uid = cursor.fetchone()
+
+        if has_user_id and not has_firebase_uid:
+            logger.info("Migrating 'bookmarks' table: user_id -> firebase_uid")
+            cursor.execute("ALTER TABLE bookmarks ADD COLUMN firebase_uid TEXT")
+            # In a real migration we'd map data, but here we deprecate the old system
+            cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
+            cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
+            cursor.execute("ALTER TABLE bookmarks ADD CONSTRAINT bookmarks_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
+            cursor.execute("ALTER TABLE bookmarks DROP COLUMN user_id")
+
+        # Check ratings table
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='ratings' AND column_name='user_id'")
+        has_user_id = cursor.fetchone()
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='ratings' AND column_name='firebase_uid'")
+        has_firebase_uid = cursor.fetchone()
+
+        if has_user_id and not has_firebase_uid:
+            logger.info("Migrating 'ratings' table: user_id -> firebase_uid")
+            cursor.execute("ALTER TABLE ratings ADD COLUMN firebase_uid TEXT")
+            cursor.execute("ALTER TABLE ratings ALTER COLUMN firebase_uid SET NOT NULL")
+            cursor.execute("ALTER TABLE ratings DROP CONSTRAINT IF EXISTS ratings_user_id_movie_id_key")
+            cursor.execute("ALTER TABLE ratings ADD CONSTRAINT ratings_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
+            cursor.execute("ALTER TABLE ratings DROP COLUMN user_id")
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.exception("Database migration failed")
+        raise
+    finally:
+        cursor.close()
+
 def init_db():
     conn = get_connection()
     if not conn: return
     try:
+        # First, run migrations if necessary
+        migrate_schema(conn)
+        
         cursor = conn.cursor()
         
-        # Bookmarks table - uses firebase_uid instead of integer user_id
+        # Bookmarks table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS bookmarks (
             id SERIAL PRIMARY KEY,
@@ -83,7 +127,7 @@ def init_db():
         )
         """)
         
-        # Ratings table - uses firebase_uid instead of integer user_id
+        # Ratings table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS ratings (
             id SERIAL PRIMARY KEY,
@@ -98,6 +142,9 @@ def init_db():
         
         conn.commit()
         cursor.close()
+    except Exception:
+        conn.rollback()
+        logger.exception("Failed to initialize database")
     finally:
         release_connection(conn)
 
@@ -114,9 +161,9 @@ def add_bookmark(firebase_uid, movie_id, movie_title, status):
         """, (firebase_uid, movie_id, movie_title, status))
         conn.commit()
         return True
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logger.error(f"Error adding bookmark for user {firebase_uid}, movie {movie_id}: {e}")
+        logger.exception(f"Error adding bookmark for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
         if cursor:
@@ -132,9 +179,9 @@ def remove_bookmark(firebase_uid, movie_id):
         cursor.execute("DELETE FROM bookmarks WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         conn.commit()
         return True
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logger.error(f"Error removing bookmark for user {firebase_uid}, movie {movie_id}: {e}")
+        logger.exception(f"Error removing bookmark for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
         if cursor:
@@ -151,8 +198,8 @@ def get_user_bookmarks(firebase_uid):
         rows = cursor.fetchall()
         bookmarks = [{'movie_id': r[0], 'movie_title': r[1], 'status': r[2]} for r in rows]
         return bookmarks
-    except Exception as e:
-        logger.error(f"Error fetching bookmarks for user {firebase_uid}: {e}")
+    except Exception:
+        logger.exception(f"Error fetching bookmarks for user {firebase_uid}")
         return []
     finally:
         if cursor:
@@ -168,8 +215,8 @@ def get_bookmark(firebase_uid, movie_id):
         cursor.execute("SELECT status FROM bookmarks WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         row = cursor.fetchone()
         return row[0] if row else None
-    except Exception as e:
-        logger.error(f"Error fetching bookmark for user {firebase_uid}, movie {movie_id}: {e}")
+    except Exception:
+        logger.exception(f"Error fetching bookmark for user {firebase_uid}, movie {movie_id}")
         return None
     finally:
         if cursor:
@@ -189,8 +236,8 @@ def add_rating(firebase_uid, movie_id, movie_title, rating):
         """, (firebase_uid, movie_id, movie_title, rating))
         conn.commit()
         return True
-    except Exception as e:
-        logger.error(f"Error adding rating for user {firebase_uid}, movie {movie_id}: {e}")
+    except Exception:
+        logger.exception(f"Error adding rating for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
         if cursor:
@@ -207,8 +254,8 @@ def get_user_ratings(firebase_uid):
         rows = cursor.fetchall()
         ratings = [{'movie_id': r[0], 'movie_title': r[1], 'rating': r[2]} for r in rows]
         return ratings
-    except Exception as e:
-        logger.error(f"Error fetching ratings for user {firebase_uid}: {e}")
+    except Exception:
+        logger.exception(f"Error fetching ratings for user {firebase_uid}")
         return []
     finally:
         if cursor:
@@ -224,8 +271,8 @@ def get_rating(firebase_uid, movie_id):
         cursor.execute("SELECT rating FROM ratings WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         row = cursor.fetchone()
         return row[0] if row else None
-    except Exception as e:
-        logger.error(f"Error fetching rating for user {firebase_uid}, movie {movie_id}: {e}")
+    except Exception:
+        logger.exception(f"Error fetching rating for user {firebase_uid}, movie {movie_id}")
         return None
     finally:
         if cursor:
