@@ -19,15 +19,14 @@ const requiredKeys = [
     'projectId',
     'storageBucket',
     'messagingSenderId',
-    'appId',
-    'measurementId'
+    'appId'
 ] as const;
 
 const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 const isConfigValid = missingKeys.length === 0;
 
 if (!isConfigValid && typeof window !== 'undefined') {
-    console.warn(`Firebase configuration is incomplete. Missing keys: ${missingKeys.join(', ')}`);
+    console.warn(`Firebase core configuration is incomplete. Missing keys: ${missingKeys.join(', ')}`);
 }
 
 export const app: FirebaseApp | null = (isConfigValid && getApps().length === 0)
@@ -37,10 +36,10 @@ export const app: FirebaseApp | null = (isConfigValid && getApps().length === 0)
 export const auth: Auth | null = app ? getAuth(app) : null;
 
 /**
- * Returns a promise that resolves to the Firebase Analytics instance if supported.
+ * Returns a promise that resolves to the Firebase Analytics instance if supported and configured.
  */
 export async function getAnalyticsInstance(): Promise<Analytics | null> {
-    if (typeof window === "undefined" || !app) return null;
+    if (typeof window === "undefined" || !app || !firebaseConfig.measurementId) return null;
     try {
         const supported = await isSupported();
         return supported ? getAnalytics(app) : null;

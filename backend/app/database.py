@@ -78,9 +78,21 @@ def migrate_schema(conn):
             logger.info("Migrating 'bookmarks' table: user_id -> firebase_uid")
             # 1) Create firebase_uid as nullable
             cursor.execute("ALTER TABLE bookmarks ADD COLUMN firebase_uid TEXT")
-            # 2) Populate firebase_uid from existing user_id (as a placeholder/mapping)
-            cursor.execute("UPDATE bookmarks SET firebase_uid = CAST(user_id AS TEXT)")
-            # 3) Now that all rows are populated, set NOT NULL
+            # 2) Populate firebase_uid from users table mapping
+            cursor.execute("""
+                UPDATE bookmarks b
+                SET firebase_uid = u.firebase_uid
+                FROM users u
+                WHERE b.user_id = u.id
+            """)
+            # 3) Check for orphans
+            cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NULL")
+            orphans = cursor.fetchone()[0]
+            if orphans > 0:
+                logger.warning(f"Found {orphans} orphaned bookmarks. Removing data with no user mapping.")
+                cursor.execute("DELETE FROM bookmarks WHERE firebase_uid IS NULL")
+            
+            # 4) Now set NOT NULL
             cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
             
             cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
@@ -97,9 +109,21 @@ def migrate_schema(conn):
             logger.info("Migrating 'ratings' table: user_id -> firebase_uid")
             # 1) Create firebase_uid as nullable
             cursor.execute("ALTER TABLE ratings ADD COLUMN firebase_uid TEXT")
-            # 2) Populate firebase_uid from existing user_id
-            cursor.execute("UPDATE ratings SET firebase_uid = CAST(user_id AS TEXT)")
-            # 3) Now that all rows are populated, set NOT NULL
+            # 2) Populate firebase_uid from users table mapping
+            cursor.execute("""
+                UPDATE ratings r
+                SET firebase_uid = u.firebase_uid
+                FROM users u
+                WHERE r.user_id = u.id
+            """)
+            # 3) Check for orphans
+            cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NULL")
+            orphans = cursor.fetchone()[0]
+            if orphans > 0:
+                logger.warning(f"Found {orphans} orphaned ratings. Removing data with no user mapping.")
+                cursor.execute("DELETE FROM ratings WHERE firebase_uid IS NULL")
+            
+            # 4) Now set NOT NULL
             cursor.execute("ALTER TABLE ratings ALTER COLUMN firebase_uid SET NOT NULL")
             
             cursor.execute("ALTER TABLE ratings DROP CONSTRAINT IF EXISTS ratings_user_id_movie_id_key")
@@ -252,6 +276,8 @@ def add_rating(firebase_uid, movie_id, movie_title, rating):
         conn.commit()
         return True
     except Exception:
+        if conn:
+            conn.rollback()
         logger.exception(f"Error adding rating for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
