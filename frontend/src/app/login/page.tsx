@@ -1,27 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import api from '@/lib/api';
+import { signIn } from '@/lib/auth';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
+
         try {
-            const res = await api.post('/auth/login', { username, password });
-            if (res.data.success) {
-                // Hard reload to update auth state in Navbar
+            const { user, error: authError } = await signIn(email, password);
+            if (user) {
+                // Hard reload to update auth state across components
                 window.location.href = '/';
+            } else {
+                setError(authError || 'Login failed. Please check your credentials.');
             }
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Login failed');
+        } catch {
+            setError('An unexpected error occurred during login.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -33,12 +38,13 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Username</label>
+                        <label className="block text-sm font-medium mb-1">Email Address</label>
                         <input
-                            type="text"
+                            type="email"
                             className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:outline-none focus:border-purple-500 transition-colors"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="your@email.com"
                             required
                         />
                     </div>
@@ -54,15 +60,21 @@ export default function LoginPage() {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors mt-4"
+                        disabled={loading}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Login
+                        {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
-                <p className="mt-6 text-center text-gray-400 text-sm">
-                    Don't have an account? <Link href="/signup" className="text-purple-400 hover:text-purple-300">Sign Up</Link>
-                </p>
+                <div className="mt-6 text-center space-y-2">
+                    <p className="text-gray-400 text-sm">
+                        Don&apos;t have an account? <Link href="/signup" className="text-purple-400 hover:text-purple-300">Sign Up</Link>
+                    </p>
+                    <Link href="/" className="block text-gray-500 hover:text-gray-400 text-xs transition-colors">
+                        ← Back to Home
+                    </Link>
+                </div>
             </div>
         </div>
     );

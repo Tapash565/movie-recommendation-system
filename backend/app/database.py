@@ -1,6 +1,5 @@
-from psycopg2 import pool
 import os
-import bcrypt
+from psycopg2 import pool
 from dotenv import load_dotenv
 from .logger import get_logger
 
@@ -9,13 +8,10 @@ logger = get_logger("database")
 
 load_dotenv()
 
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Use a connection pool for better performance
 def create_pool():
-    
     try:
         # Try DATABASE_URL first, but only if it looks complete
         if DATABASE_URL and "@" in DATABASE_URL:
@@ -68,205 +64,287 @@ def check_db_health():
                 pass
         release_connection(conn)
 
+def migrate_schema(conn):
+    """Handles migration from legacy integer user_id to firebase_uid TEXT."""
+    cursor = conn.cursor()
+    try:
+        # Check bookmarks table
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='bookmarks' AND column_name='user_id'")
+        has_user_id = cursor.fetchone()
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='bookmarks' AND column_name='firebase_uid'")
+        has_firebase_uid = cursor.fetchone()
+
+        if has_user_id and not has_firebase_uid:
+            logger.info("Migrating 'bookmarks' table: user_id -> firebase_uid")
+            # 1) Create firebase_uid as nullable
+            cursor.execute("ALTER TABLE bookmarks ADD COLUMN firebase_uid TEXT")
+            # 2) Populate firebase_uid from users table mapping
+            # Verify users.firebase_uid column exists first
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='firebase_uid'")
+            if not cursor.fetchone():
+                logger.error("Migration aborted: 'users.firebase_uid' column missing. Cannot map legacy users.")
+                raise RuntimeError("users.firebase_uid column missing")
+
+            cursor.execute("""
+                UPDATE bookmarks b
+                SET firebase_uid = u.firebase_uid
+                FROM users u
+                WHERE b.user_id = u.id
+            """)
+            
+            # 3) Verify the update actually populated data
+            cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NOT NULL")
+            populated = cursor.fetchone()[0]
+            if populated == 0:
+                # Check if there was even data to migrate
+                cursor.execute("SELECT COUNT(*) FROM bookmarks")
+                total = cursor.fetchone()[0]
+                if total > 0:
+                    logger.error("Migration aborted: Bookmarks exist but none were mapped to a Firebase UID. Joining with 'users' failed.")
+                    raise RuntimeError("Bookmark migration backfill failed: no matches found")
+            
+            # 4) Check for orphans and clean up
+            cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NULL")
+            orphans = cursor.fetchone()[0]
+            if orphans > 0:
+                logger.warning(f"Found {orphans} orphaned bookmarks. Removing data with no user mapping.")
+                cursor.execute("DELETE FROM bookmarks WHERE firebase_uid IS NULL")
+            
+            # 5) Now set NOT NULL
+            cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
+            
+            cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
+            cursor.execute("ALTER TABLE bookmarks ADD CONSTRAINT bookmarks_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
+            cursor.execute("ALTER TABLE bookmarks DROP COLUMN user_id")
+
+        # Check ratings table
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='ratings' AND column_name='user_id'")
+        has_user_id = cursor.fetchone()
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='ratings' AND column_name='firebase_uid'")
+        has_firebase_uid = cursor.fetchone()
+
+        if has_user_id and not has_firebase_uid:
+            logger.info("Migrating 'ratings' table: user_id -> firebase_uid")
+            # 1) Create firebase_uid as nullable
+            cursor.execute("ALTER TABLE ratings ADD COLUMN firebase_uid TEXT")
+            # 2) Populate firebase_uid from users table mapping
+            cursor.execute("""
+                UPDATE ratings r
+                SET firebase_uid = u.firebase_uid
+                FROM users u
+                WHERE r.user_id = u.id
+            """)
+            
+            # 3) Verify the update actually populated data
+            cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NOT NULL")
+            populated = cursor.fetchone()[0]
+            if populated == 0:
+                cursor.execute("SELECT COUNT(*) FROM ratings")
+                total = cursor.fetchone()[0]
+                if total > 0:
+                    logger.error("Migration aborted: Ratings exist but none were mapped to a Firebase UID. Joining with 'users' failed.")
+                    raise RuntimeError("Rating migration backfill failed: no matches found")
+
+            # 4) Check for orphans and clean up
+            cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NULL")
+            orphans = cursor.fetchone()[0]
+            if orphans > 0:
+                logger.warning(f"Found {orphans} orphaned ratings. Removing data with no user mapping.")
+                cursor.execute("DELETE FROM ratings WHERE firebase_uid IS NULL")
+            
+            # 4) Now set NOT NULL
+            cursor.execute("ALTER TABLE ratings ALTER COLUMN firebase_uid SET NOT NULL")
+            
+            cursor.execute("ALTER TABLE ratings DROP CONSTRAINT IF EXISTS ratings_user_id_movie_id_key")
+            cursor.execute("ALTER TABLE ratings ADD CONSTRAINT ratings_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
+            cursor.execute("ALTER TABLE ratings DROP COLUMN user_id")
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.exception("Database migration failed")
+        raise
+    finally:
+        cursor.close()
+
 def init_db():
     conn = get_connection()
-    if not conn: return
+    if not conn:
+        return
     try:
-        cursor = conn.cursor()
+        # First, run migrations if necessary
+        migrate_schema(conn)
         
-        # Users table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-        """)
-        
-        # Bookmarks table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bookmarks (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id),
-            movie_id INTEGER NOT NULL,
-            movie_title TEXT NOT NULL,
-            status TEXT NOT NULL, -- 'to_watch', 'watched'
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, movie_id)
-        )
-        """)
-        
-        # Ratings table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS ratings (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id),
-            movie_id INTEGER NOT NULL,
-            movie_title TEXT NOT NULL,
-            rating FLOAT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, movie_id)
-        )
-        """)
-        
-        conn.commit()
-        cursor.close()
+        with conn.cursor() as cursor:
+            # Bookmarks table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id SERIAL PRIMARY KEY,
+                firebase_uid TEXT NOT NULL,
+                movie_id INTEGER NOT NULL,
+                movie_title TEXT NOT NULL,
+                status TEXT NOT NULL, -- 'to_watch', 'watched'
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(firebase_uid, movie_id)
+            )
+            """)
+            
+            # Ratings table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ratings (
+                id SERIAL PRIMARY KEY,
+                firebase_uid TEXT NOT NULL,
+                movie_id INTEGER NOT NULL,
+                movie_title TEXT NOT NULL,
+                rating FLOAT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(firebase_uid, movie_id)
+            )
+            """)
+            
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.exception("Failed to initialize database")
     finally:
         release_connection(conn)
 
-def hash_password(password):
-    """Hash a password using bcrypt."""
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode(), salt).decode()
-
-def add_user(username, password):
+def add_bookmark(firebase_uid, movie_id, movie_title, status):
     conn = get_connection()
-    if not conn: return False
-    try:
-        cursor = conn.cursor()
-        hashed_pw = hash_password(password)
-        cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_pw))
-        conn.commit()
-        cursor.close()
-        return True
-    except Exception as e:
-        logger.error(f"Error adding user {username}: {e}")
+    if not conn:
         return False
-    finally:
-        release_connection(conn)
-
-def verify_user(username, password):
-    conn = get_connection()
-    if not conn: return None
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, password FROM users WHERE username = %s", (username,))
-        user = cursor.fetchone()
-        cursor.close()
-        
-        if user and bcrypt.checkpw(password.encode(), user[1].encode()):
-            return user[0]
-        return None
-    finally:
-        release_connection(conn)
-
-def get_user_id(username):
-    conn = get_connection()
-    if not conn: return None
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
-        user = cursor.fetchone()
-        cursor.close()
-        return user[0] if user else None
-    finally:
-        release_connection(conn)
-
-def add_bookmark(user_id, movie_id, movie_title, status):
-    conn = get_connection()
-    if not conn: return False
     cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("""
-        INSERT INTO bookmarks (user_id, movie_id, movie_title, status)
+        INSERT INTO bookmarks (firebase_uid, movie_id, movie_title, status)
         VALUES (%s, %s, %s, %s)
-        ON CONFLICT(user_id, movie_id) DO UPDATE SET status=EXCLUDED.status
-        """, (user_id, movie_id, movie_title, status))
+        ON CONFLICT(firebase_uid, movie_id) DO UPDATE SET status=EXCLUDED.status
+        """, (firebase_uid, movie_id, movie_title, status))
         conn.commit()
         return True
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logger.error(f"Error adding bookmark for user {user_id}, movie {movie_id}: {e}")
+        logger.exception(f"Error adding bookmark for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
         if cursor:
             cursor.close()
         release_connection(conn)
 
-def remove_bookmark(user_id, movie_id):
+def remove_bookmark(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return False
+    if not conn:
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM bookmarks WHERE user_id = %s AND movie_id = %s", (user_id, movie_id))
+        cursor.execute("DELETE FROM bookmarks WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         conn.commit()
         return True
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logger.error(f"Error removing bookmark for user {user_id}, movie {movie_id}: {e}")
+        logger.exception(f"Error removing bookmark for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
         if cursor:
             cursor.close()
         release_connection(conn)
 
-def get_user_bookmarks(user_id):
+def get_user_bookmarks(firebase_uid):
     conn = get_connection()
-    if not conn: return []
+    if not conn:
+        return []
+    cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT movie_id, movie_title, status FROM bookmarks WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT movie_id, movie_title, status FROM bookmarks WHERE firebase_uid = %s", (firebase_uid,))
         rows = cursor.fetchall()
         bookmarks = [{'movie_id': r[0], 'movie_title': r[1], 'status': r[2]} for r in rows]
-        cursor.close()
         return bookmarks
+    except Exception:
+        logger.exception(f"Error fetching bookmarks for user {firebase_uid}")
+        return []
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
-def get_bookmark(user_id, movie_id):
+def get_bookmark(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return None
+    if not conn:
+        return None
+    cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT status FROM bookmarks WHERE user_id = %s AND movie_id = %s", (user_id, movie_id))
+        cursor.execute("SELECT status FROM bookmarks WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         row = cursor.fetchone()
-        cursor.close()
         return row[0] if row else None
+    except Exception:
+        logger.exception(f"Error fetching bookmark for user {firebase_uid}, movie {movie_id}")
+        return None
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
-def add_rating(user_id, movie_id, movie_title, rating):
+def add_rating(firebase_uid, movie_id, movie_title, rating):
     conn = get_connection()
-    if not conn: return False
+    if not conn:
+        return False
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("""
-        INSERT INTO ratings (user_id, movie_id, movie_title, rating)
+        INSERT INTO ratings (firebase_uid, movie_id, movie_title, rating)
         VALUES (%s, %s, %s, %s)
-        ON CONFLICT(user_id, movie_id) DO UPDATE SET rating=EXCLUDED.rating
-        """, (user_id, movie_id, movie_title, rating))
+        ON CONFLICT(firebase_uid, movie_id) DO UPDATE SET rating=EXCLUDED.rating
+        """, (firebase_uid, movie_id, movie_title, rating))
         conn.commit()
-        cursor.close()
         return True
-    except Exception as e:
-        logger.error(f"Error adding rating for user {user_id}, movie {movie_id}: {e}")
+    except Exception:
+        if conn:
+            conn.rollback()
+        logger.exception(f"Error adding rating for user {firebase_uid}, movie {movie_id}")
         return False
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
-def get_user_ratings(user_id):
+def get_user_ratings(firebase_uid):
     conn = get_connection()
-    if not conn: return []
+    if not conn:
+        return []
+    cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT movie_id, movie_title, rating FROM ratings WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT movie_id, movie_title, rating FROM ratings WHERE firebase_uid = %s", (firebase_uid,))
         rows = cursor.fetchall()
         ratings = [{'movie_id': r[0], 'movie_title': r[1], 'rating': r[2]} for r in rows]
-        cursor.close()
         return ratings
+    except Exception:
+        logger.exception(f"Error fetching ratings for user {firebase_uid}")
+        return []
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)
 
-def get_rating(user_id, movie_id):
+def get_rating(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return None
+    if not conn:
+        return None
+    cursor = None
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT rating FROM ratings WHERE user_id = %s AND movie_id = %s", (user_id, movie_id))
+        cursor.execute("SELECT rating FROM ratings WHERE firebase_uid = %s AND movie_id = %s", (firebase_uid, movie_id))
         row = cursor.fetchone()
-        cursor.close()
         return row[0] if row else None
+    except Exception:
+        logger.exception(f"Error fetching rating for user {firebase_uid}, movie {movie_id}")
+        return None
     finally:
+        if cursor:
+            cursor.close()
         release_connection(conn)

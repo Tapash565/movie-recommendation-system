@@ -140,3 +140,7 @@ dmypy.json
 /Data/
 *.ipynb
 .vscode/
+
+# Firebase Service Account (contains private key — NEVER commit this)
+*firebase-adminsdk*.json
+serviceAccount*.json

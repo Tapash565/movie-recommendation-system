@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
 
 interface LoadingScreenProps {
     attempts: number;
@@ -9,16 +8,10 @@ interface LoadingScreenProps {
 }
 
 export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps) {
-    const [showRetry, setShowRetry] = useState(false);
-
-    useEffect(() => {
-        if (attempts > 5) {
-            setShowRetry(true);
-        }
-    }, [attempts]);
+    const showRetry = attempts > 5;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden">
+        <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-background overflow-hidden">
             {/* Dynamic Background */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -37,7 +30,7 @@ export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps)
                     <div className="absolute inset-0 -m-4 border-2 border-purple-500/20 rounded-full animate-ping"></div>
                     <div className="absolute inset-0 -m-8 border border-cyan-500/10 rounded-full animate-ping [animation-delay:1s]"></div>
 
-                    <div className="relative w-32 h-32 flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-2xl shadow-purple-500/20 rotate-12">
+                    <div className="relative w-32 h-32 flex items-center justify-center bg-linear-to-br from-purple-600 to-pink-600 rounded-2xl shadow-2xl shadow-purple-500/20 rotate-12">
                         <svg
                             className="w-16 h-16 text-white -rotate-12"
                             fill="none"
@@ -63,7 +56,7 @@ export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps)
                     className="space-y-4"
                 >
                     <h1 className="text-3xl font-bold text-white tracking-tight">
-                        Initializing <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Cinematic Universe</span>
+                        Initializing <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-purple-500">Cinematic Universe</span>
                     </h1>
                     <p className="text-gray-400 text-lg">
                         {attempts > 3 ? "The server is taking a moment to wake up..." : "Connecting to our secure database..."}
@@ -72,7 +65,7 @@ export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps)
                     {/* Progress Bar */}
                     <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden mt-8">
                         <motion.div
-                            className="bg-gradient-to-r from-cyan-500 to-purple-600 h-full"
+                            className="bg-linear-to-r from-cyan-500 to-purple-600 h-full"
                             animate={{
                                 width: ["0%", "30%", "45%", "60%", "75%", "90%", "95%"],
                             }}

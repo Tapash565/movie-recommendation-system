@@ -4,7 +4,6 @@ import { useEffect, useState, use } from 'react';
 import api from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 
 interface MovieDetail {
     id: number;
@@ -30,7 +29,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     const [movie, setMovie] = useState<MovieDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [localRating, setLocalRating] = useState<number>(0);
-    const router = useRouter();
 
     useEffect(() => {
         api.get(`/movies/${id}`)
@@ -42,12 +40,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             .finally(() => setLoading(false));
     }, [id]);
 
-    // Sync local rating when movie.user_rating changes externally
-    useEffect(() => {
-        if (movie) {
-            setLocalRating(movie.user_rating || 0);
-        }
-    }, [movie?.user_rating]);
 
     const handleBookmark = async (status: string) => {
         if (!movie) return;
@@ -89,7 +81,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         <div className="min-h-screen pb-20">
             {/* Backdrop / Header */}
             <div className="relative w-full h-[40vh] md:h-[50vh] lg:h-[60vh]">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/80 to-transparent z-10"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-background via-background/80 to-transparent z-10"></div>
                 {/* We use poster as backdrop for now (blurred) */}
                 <Image
                     src={movie.poster_url}
@@ -142,7 +134,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                         <h2 className="text-2xl font-bold mb-6">Recommendations</h2>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {movie.recommendations.map(rec => (
-                                <MovieCard key={rec.id} movie={rec as any} />
+                                <MovieCard key={rec.id} movie={rec} />
                             ))}
                         </div>
                     </section>
@@ -177,7 +169,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
                     <div className="glass-panel p-6">
                         <h3 className="text-xl font-bold mb-4">Rate this Movie</h3>
-                        
+
                         <div className="space-y-4">
                             {/* Visual Rating Display */}
                             <div className="text-center">
@@ -186,7 +178,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                                 </div>
                                 <div className="text-gray-400 text-sm">out of 10</div>
                             </div>
-                            
+
                             {/* Slider Input */}
                             <div className="relative">
                                 <input
@@ -197,13 +189,12 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                                     value={localRating}
                                     onChange={(e) => setLocalRating(parseFloat(e.target.value))}
                                     onPointerUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
-                                    onMouseUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                                     style={{
                                         background: `linear-gradient(to right, #facc15 0%, #facc15 ${(localRating / 10) * 100}%, #374151 ${(localRating / 10) * 100}%, #374151 100%)`
                                     }}
                                 />
-                                
+
                                 {/* Scale Labels */}
                                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                                     <span>0</span>
@@ -213,11 +204,11 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                                     <span>10</span>
                                 </div>
                             </div>
-                            
+
                             {/* Helper Text */}
                             <p className="text-center text-gray-400 text-sm">
-                                {localRating > 0 ? 
-                                    `You rated this movie ${localRating}/10` : 
+                                {localRating > 0 ?
+                                    `You rated this movie ${localRating}/10` :
                                     'Slide to rate'
                                 }
                             </p>

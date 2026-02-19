@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from ..schemas import Movie
 
 from .. import services
 from .. import database as db
-from ..dependencies import get_df, get_retriever
+from ..dependencies import get_df, get_retriever, get_current_user
 from ..logger import get_logger
 
 # Initialize logger for recommendations
@@ -14,28 +14,27 @@ router = APIRouter()
 
 @router.get("/discover", response_model=List[Movie])
 def get_recommendations_page(
-    request: Request, 
+    user=Depends(get_current_user), 
     df=Depends(get_df), 
     retriever=Depends(get_retriever)
 ):
     """Get personalized recommendations."""
-    user_id = request.session.get("user_id")
-    username = request.session.get("user")
-    
-    if not user_id:
-        logger.warning("Unauthorized access attempt to discover page.")
-        raise HTTPException(status_code=401, detail="Please login to view personalized recommendations")
+    firebase_uid = user.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=403, detail="Forbidden: Valid user UID required for recommendations")
+        
+    email = user.get("email", "User")
     
     # Check if data is available
     if df.empty:
         logger.error("Movie data not available - returning empty recommendations")
         return []
         
-    logger.info(f"User '{username}' (ID: {user_id}) is viewing discover page.")
+    logger.info(f"User '{email}' (UID: {firebase_uid}) is viewing discover page.")
     
-    # Get user's library data
-    bookmarks_raw = db.get_user_bookmarks(user_id)
-    ratings_raw = db.get_user_ratings(user_id)
+    # Get user's library data using firebase_uid
+    bookmarks_raw = db.get_user_bookmarks(firebase_uid)
+    ratings_raw = db.get_user_ratings(firebase_uid)
     
     # Collect movie IDs from watched movies and highly rated movies
     library_ids = set()
