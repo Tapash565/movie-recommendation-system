@@ -79,20 +79,38 @@ def migrate_schema(conn):
             # 1) Create firebase_uid as nullable
             cursor.execute("ALTER TABLE bookmarks ADD COLUMN firebase_uid TEXT")
             # 2) Populate firebase_uid from users table mapping
+            # Verify users.firebase_uid column exists first
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='firebase_uid'")
+            if not cursor.fetchone():
+                logger.error("Migration aborted: 'users.firebase_uid' column missing. Cannot map legacy users.")
+                raise RuntimeError("users.firebase_uid column missing")
+
             cursor.execute("""
                 UPDATE bookmarks b
                 SET firebase_uid = u.firebase_uid
                 FROM users u
                 WHERE b.user_id = u.id
             """)
-            # 3) Check for orphans
+            
+            # 3) Verify the update actually populated data
+            cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NOT NULL")
+            populated = cursor.fetchone()[0]
+            if populated == 0:
+                # Check if there was even data to migrate
+                cursor.execute("SELECT COUNT(*) FROM bookmarks")
+                total = cursor.fetchone()[0]
+                if total > 0:
+                    logger.error("Migration aborted: Bookmarks exist but none were mapped to a Firebase UID. Joining with 'users' failed.")
+                    raise RuntimeError("Bookmark migration backfill failed: no matches found")
+            
+            # 4) Check for orphans and clean up
             cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NULL")
             orphans = cursor.fetchone()[0]
             if orphans > 0:
                 logger.warning(f"Found {orphans} orphaned bookmarks. Removing data with no user mapping.")
                 cursor.execute("DELETE FROM bookmarks WHERE firebase_uid IS NULL")
             
-            # 4) Now set NOT NULL
+            # 5) Now set NOT NULL
             cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
             
             cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
@@ -116,7 +134,18 @@ def migrate_schema(conn):
                 FROM users u
                 WHERE r.user_id = u.id
             """)
-            # 3) Check for orphans
+            
+            # 3) Verify the update actually populated data
+            cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NOT NULL")
+            populated = cursor.fetchone()[0]
+            if populated == 0:
+                cursor.execute("SELECT COUNT(*) FROM ratings")
+                total = cursor.fetchone()[0]
+                if total > 0:
+                    logger.error("Migration aborted: Ratings exist but none were mapped to a Firebase UID. Joining with 'users' failed.")
+                    raise RuntimeError("Rating migration backfill failed: no matches found")
+
+            # 4) Check for orphans and clean up
             cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NULL")
             orphans = cursor.fetchone()[0]
             if orphans > 0:
@@ -146,36 +175,34 @@ def init_db():
         # First, run migrations if necessary
         migrate_schema(conn)
         
-        cursor = conn.cursor()
-        
-        # Bookmarks table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bookmarks (
-            id SERIAL PRIMARY KEY,
-            firebase_uid TEXT NOT NULL,
-            movie_id INTEGER NOT NULL,
-            movie_title TEXT NOT NULL,
-            status TEXT NOT NULL, -- 'to_watch', 'watched'
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(firebase_uid, movie_id)
-        )
-        """)
-        
-        # Ratings table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS ratings (
-            id SERIAL PRIMARY KEY,
-            firebase_uid TEXT NOT NULL,
-            movie_id INTEGER NOT NULL,
-            movie_title TEXT NOT NULL,
-            rating FLOAT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(firebase_uid, movie_id)
-        )
-        """)
-        
-        conn.commit()
-        cursor.close()
+        with conn.cursor() as cursor:
+            # Bookmarks table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id SERIAL PRIMARY KEY,
+                firebase_uid TEXT NOT NULL,
+                movie_id INTEGER NOT NULL,
+                movie_title TEXT NOT NULL,
+                status TEXT NOT NULL, -- 'to_watch', 'watched'
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(firebase_uid, movie_id)
+            )
+            """)
+            
+            # Ratings table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ratings (
+                id SERIAL PRIMARY KEY,
+                firebase_uid TEXT NOT NULL,
+                movie_id INTEGER NOT NULL,
+                movie_title TEXT NOT NULL,
+                rating FLOAT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(firebase_uid, movie_id)
+            )
+            """)
+            
+            conn.commit()
     except Exception:
         conn.rollback()
         logger.exception("Failed to initialize database")
