@@ -77,7 +77,7 @@ export default function LibraryPage() {
                             <div key={movie.id} className="relative group">
                                 <MovieCard movie={movie} />
                                 <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-2 py-1 rounded-md text-xs shadow-md">
-                                    You&apos;re rated: {movie.user_rating}
+                                    Your rating: {movie.user_rating}
                                 </div>
                             </div>
                         ))}

@@ -11,7 +11,7 @@ export default function LoadingScreen({ attempts, onRetry }: LoadingScreenProps)
     const showRetry = attempts > 5;
 
     return (
-        <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-background overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden">
             {/* Dynamic Background */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>

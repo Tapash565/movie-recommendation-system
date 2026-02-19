@@ -189,7 +189,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                                     value={localRating}
                                     onChange={(e) => setLocalRating(parseFloat(e.target.value))}
                                     onPointerUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
-                                    onMouseUp={(e) => handleRate(parseFloat((e.target as HTMLInputElement).value))}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                                     style={{
                                         background: `linear-gradient(to right, #facc15 0%, #facc15 ${(localRating / 10) * 100}%, #374151 ${(localRating / 10) * 100}%, #374151 100%)`

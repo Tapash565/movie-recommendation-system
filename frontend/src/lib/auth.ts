@@ -6,6 +6,7 @@ import {
     User
 } from "firebase/auth";
 import { useState, useEffect } from "react";
+import { isAxiosError } from "axios";
 import { auth } from "./firebase";
 import api from "./api";
 
@@ -18,7 +19,7 @@ export function useAuth() {
 
     useEffect(() => {
         if (!auth) {
-            setLoading(false);
+            setTimeout(() => setLoading(false), 0);
             return;
         }
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -77,9 +78,15 @@ export async function signOut() {
 export async function getBackendUser() {
     try {
         const response = await api.get('/auth/me');
-        return response.data;
+        return { data: response.data, error: null };
     } catch (error) {
-        console.error('Failed to fetch backend user:', error);
-        return null;
+        if (isAxiosError(error) && error.response) {
+            const status = error.response.status;
+            if (status === 401 || status === 403) {
+                return { data: null, error: 'unauthenticated' };
+            }
+            return { data: null, error: `Error ${status}: ${error.response.data?.detail || 'Server error'}` };
+        }
+        return { data: null, error: 'network_error' };
     }
 }
