@@ -21,7 +21,7 @@ api.interceptors.request.use(
             try {
                 // Get the current ID token (cache-respecting)
                 const token = await user.getIdToken();
-                config.headers.Authorization = `Bearer ${token}`;
+                config.headers.set('Authorization', `Bearer ${token}`);
             } catch (error) {
                 console.error('Error getting Firebase token:', error);
                 // Fail the request instead of proceeding unauthenticated

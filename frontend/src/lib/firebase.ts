@@ -13,10 +13,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase gracefully
-const isConfigValid = !!firebaseConfig.apiKey;
+const requiredKeys = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+    'measurementId'
+] as const;
+
+const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+const isConfigValid = missingKeys.length === 0;
 
 if (!isConfigValid && typeof window !== 'undefined') {
-    console.warn("Firebase configuration is missing. Ensure NEXT_PUBLIC_FIREBASE_API_KEY is set.");
+    console.warn(`Firebase configuration is incomplete. Missing keys: ${missingKeys.join(', ')}`);
 }
 
 export const app: FirebaseApp | null = (isConfigValid && getApps().length === 0)

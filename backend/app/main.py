@@ -67,14 +67,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
 
 # CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+cors_origins_raw = os.getenv("CORS_ORIGINS")
+if cors_origins_raw:
+    cors_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
+else:
+    cors_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://movie-recommendation-system-phi-lac.vercel.app",
         "https://movie-recommendation-system-deployment.vercel.app",
-    ],
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

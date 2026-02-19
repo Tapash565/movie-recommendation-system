@@ -160,7 +160,8 @@ def init_db():
 
 def add_bookmark(firebase_uid, movie_id, movie_title, status):
     conn = get_connection()
-    if not conn: return False
+    if not conn:
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -182,7 +183,8 @@ def add_bookmark(firebase_uid, movie_id, movie_title, status):
 
 def remove_bookmark(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return False
+    if not conn:
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -200,7 +202,8 @@ def remove_bookmark(firebase_uid, movie_id):
 
 def get_user_bookmarks(firebase_uid):
     conn = get_connection()
-    if not conn: return []
+    if not conn:
+        return []
     cursor = None
     try:
         cursor = conn.cursor()
@@ -218,7 +221,8 @@ def get_user_bookmarks(firebase_uid):
 
 def get_bookmark(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return None
+    if not conn:
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
@@ -235,7 +239,8 @@ def get_bookmark(firebase_uid, movie_id):
 
 def add_rating(firebase_uid, movie_id, movie_title, rating):
     conn = get_connection()
-    if not conn: return False
+    if not conn:
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -256,7 +261,8 @@ def add_rating(firebase_uid, movie_id, movie_title, rating):
 
 def get_user_ratings(firebase_uid):
     conn = get_connection()
-    if not conn: return []
+    if not conn:
+        return []
     cursor = None
     try:
         cursor = conn.cursor()
@@ -274,7 +280,8 @@ def get_user_ratings(firebase_uid):
 
 def get_rating(firebase_uid, movie_id):
     conn = get_connection()
-    if not conn: return None
+    if not conn:
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
