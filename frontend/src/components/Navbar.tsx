@@ -3,25 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { useAuth, signOut } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import MobileSidebar from './MobileSidebar';
 
 export default function Navbar() {
     const pathname = usePathname();
-    const [user, setUser] = useState<{ username: string; id: number } | null>(null);
+    const { user, loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    useEffect(() => {
-        // Check if user is logged in
-        api.get('/auth/me')
-            .then((res) => {
-                if (res.data.authenticated) {
-                    setUser({ username: res.data.user, id: res.data.user_id });
-                }
-            })
-            .catch(() => setUser(null));
-    }, [pathname]);
+    // Compute a safe display name for the user
+    const displayName = user?.email?.split('@')[0] || user?.displayName || 'Guest';
 
     // Prevent body scroll when sidebar is open
     useEffect(() => {
@@ -35,8 +27,8 @@ export default function Navbar() {
 
     const handleLogout = async () => {
         try {
-            await api.post('/auth/logout');
-            window.location.href = '/'; // Hard reload to clear state
+            await signOut();
+            window.location.href = '/'; // Hard reload to clear internal state
         } catch (error) {
             console.error('Logout failed', error);
         }
@@ -61,7 +53,7 @@ export default function Navbar() {
                 user={user}
                 onLogout={handleLogout}
             />
-            
+
             <nav className="bg-black/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
@@ -86,10 +78,10 @@ export default function Navbar() {
                                 </svg>
                             </button>
 
-                            <Link href="/" className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                            <Link href="/" className="text-xl md:text-2xl font-bold bg-linear-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                                 Movie Recommender
                             </Link>
-                            
+
                             {/* Desktop Navigation */}
                             <div className="hidden md:block ml-10">
                                 <div className="flex items-baseline space-x-4">
@@ -112,12 +104,12 @@ export default function Navbar() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Desktop Auth Buttons */}
                         <div className="hidden md:block">
-                            {user ? (
+                            {!loading && user ? (
                                 <div className="flex items-center gap-4">
-                                    <span className="text-gray-400 text-sm">Welcome, {user.username}</span>
+                                    <span className="text-gray-400 text-sm">Welcome, {displayName}</span>
                                     <button
                                         onClick={handleLogout}
                                         className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
