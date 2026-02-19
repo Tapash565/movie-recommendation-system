@@ -26,11 +26,11 @@ export default function Navbar() {
     }, [isSidebarOpen]);
 
     const handleLogout = async () => {
-        try {
-            await signOut();
+        const result = await signOut();
+        if (result.error) {
+            console.error('Logout failed', result.error);
+        } else {
             window.location.href = '/'; // Hard reload to clear internal state
-        } catch (error) {
-            console.error('Logout failed', error);
         }
     };
 

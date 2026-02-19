@@ -38,9 +38,13 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_PATH must be set in .env")
     
     try:
-        cred = credentials.Certificate(service_account_path)
-        firebase_admin.initialize_app(cred)
-        logger.info("Firebase Admin initialized successfully.")
+        try:
+            firebase_admin.get_app()
+            logger.info("Firebase Admin already initialized.")
+        except ValueError:
+            cred = credentials.Certificate(service_account_path)
+            firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin initialized successfully.")
     except Exception as e:
         logger.critical(f"Failed to initialize Firebase Admin: {e}")
         raise RuntimeError(f"Firebase initialization failed: {e}")
