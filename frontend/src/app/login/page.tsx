@@ -24,7 +24,7 @@ export default function LoginPage() {
                 setError(authError || 'Login failed. Please check your credentials.');
             }
         } catch {
-            setError('An unexpected error occurred during signup.');
+            setError('An unexpected error occurred during login.');
         } finally {
             setLoading(false);
         }

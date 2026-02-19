@@ -29,7 +29,6 @@ export default function StarField({
             x: number;
             y: number;
             z: number;
-            o: number | string;
         }
         let stars: Star[] = [];
 
@@ -45,8 +44,7 @@ export default function StarField({
                 stars.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    z: Math.random() * canvas.width,
-                    o: '0.' + Math.floor(Math.random() * 99) + 1
+                    z: Math.random() * canvas.width
                 });
             }
         };
