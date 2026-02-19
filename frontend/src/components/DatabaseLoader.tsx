@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import LoadingScreen from './LoadingScreen';
 import { AnimatePresence } from 'framer-motion';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface DatabaseLoaderProps {
   children: React.ReactNode;
@@ -17,9 +15,8 @@ export default function DatabaseLoader({ children }: DatabaseLoaderProps) {
 
   const checkConnection = useCallback(async () => {
     try {
-      // The backend main.py defines @app.get("/api/health")
-      // Accurate health check path: ${API_URL}/api/health
-      const response = await axios.get(`${API_URL}/api/health`, {
+      // Use centralized api instance
+      const response = await api.get('/health', {
         timeout: 5000,
       });
 
