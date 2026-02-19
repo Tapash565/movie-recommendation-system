@@ -9,6 +9,12 @@ interface StarFieldProps {
     count?: number;
 }
 
+interface Star {
+    x: number;
+    y: number;
+    z: number;
+}
+
 export default function StarField({
     speed = 0.05,
     backgroundColor = 'transparent',
@@ -25,11 +31,6 @@ export default function StarField({
         if (!ctx) return;
 
         let animationFrameId: number;
-        interface Star {
-            x: number;
-            y: number;
-            z: number;
-        }
         let stars: Star[] = [];
 
         const resizeCanvas = () => {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 
 // Create an Axios instance
@@ -36,11 +37,21 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         // Handle common errors (e.g., 401 Unauthorized)
         if (error.response?.status === 401) {
-            console.warn('Unauthorized request detected');
-            // Optional: Redirect to login or clear auth state
+            console.warn('Unauthorized request detected - signing out');
+            try {
+                if (auth) {
+                    await signOut(auth);
+                }
+                // Only redirect in the browser
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login';
+                }
+            } catch (signOutError) {
+                console.error('Error during auto-signout:', signOutError);
+            }
         }
         console.error('API Error:', error.response?.data?.detail || error.message);
         return Promise.reject(error);

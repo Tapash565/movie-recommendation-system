@@ -84,11 +84,12 @@ def get_movie_details_api(
     user_rating = 0
     
     if user:
-        firebase_uid = user["uid"]
-        bookmark_status = db.get_bookmark(firebase_uid, movie_id)
-        rating_val = db.get_rating(firebase_uid, movie_id)
-        if rating_val is not None:
-            user_rating = rating_val
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            bookmark_status = db.get_bookmark(firebase_uid, movie_id)
+            rating_val = db.get_rating(firebase_uid, movie_id)
+            if rating_val is not None:
+                user_rating = rating_val
             
     # Combine data
     movie_data = movie.copy()

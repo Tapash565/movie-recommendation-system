@@ -19,7 +19,10 @@ def get_recommendations_page(
     retriever=Depends(get_retriever)
 ):
     """Get personalized recommendations."""
-    firebase_uid = user["uid"]
+    firebase_uid = user.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=403, detail="Forbidden: Valid user UID required for recommendations")
+        
     email = user.get("email", "User")
     
     # Check if data is available
