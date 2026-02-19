@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,18 +19,22 @@ if (!isConfigValid && typeof window !== 'undefined') {
     console.warn("Firebase configuration is missing. Ensure NEXT_PUBLIC_FIREBASE_API_KEY is set.");
 }
 
-const app = (isConfigValid && getApps().length === 0)
+export const app: FirebaseApp | null = (isConfigValid && getApps().length === 0)
     ? initializeApp(firebaseConfig)
     : (getApps().length > 0 ? getApp() : null);
 
-const auth = app ? getAuth(app) : null;
+export const auth: Auth | null = app ? getAuth(app) : null;
 
-// Initialize Analytics conditionally (only in browser and if app exists)
-let analytics;
-if (typeof window !== "undefined" && app) {
-    isSupported().then((supported) => {
-        if (supported) analytics = getAnalytics(app);
-    }).catch(err => console.warn("Analytics not supported:", err));
+/**
+ * Returns a promise that resolves to the Firebase Analytics instance if supported.
+ */
+export async function getAnalyticsInstance(): Promise<Analytics | null> {
+    if (typeof window === "undefined" || !app) return null;
+    try {
+        const supported = await isSupported();
+        return supported ? getAnalytics(app) : null;
+    } catch (err) {
+        console.warn("Analytics initialization failed:", err);
+        return null;
+    }
 }
-
-export { app, auth, analytics };

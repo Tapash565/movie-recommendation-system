@@ -76,9 +76,13 @@ def migrate_schema(conn):
 
         if has_user_id and not has_firebase_uid:
             logger.info("Migrating 'bookmarks' table: user_id -> firebase_uid")
+            # 1) Create firebase_uid as nullable
             cursor.execute("ALTER TABLE bookmarks ADD COLUMN firebase_uid TEXT")
-            # In a real migration we'd map data, but here we deprecate the old system
+            # 2) Populate firebase_uid from existing user_id (as a placeholder/mapping)
+            cursor.execute("UPDATE bookmarks SET firebase_uid = CAST(user_id AS TEXT)")
+            # 3) Now that all rows are populated, set NOT NULL
             cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
+            
             cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
             cursor.execute("ALTER TABLE bookmarks ADD CONSTRAINT bookmarks_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
             cursor.execute("ALTER TABLE bookmarks DROP COLUMN user_id")
@@ -91,8 +95,13 @@ def migrate_schema(conn):
 
         if has_user_id and not has_firebase_uid:
             logger.info("Migrating 'ratings' table: user_id -> firebase_uid")
+            # 1) Create firebase_uid as nullable
             cursor.execute("ALTER TABLE ratings ADD COLUMN firebase_uid TEXT")
+            # 2) Populate firebase_uid from existing user_id
+            cursor.execute("UPDATE ratings SET firebase_uid = CAST(user_id AS TEXT)")
+            # 3) Now that all rows are populated, set NOT NULL
             cursor.execute("ALTER TABLE ratings ALTER COLUMN firebase_uid SET NOT NULL")
+            
             cursor.execute("ALTER TABLE ratings DROP CONSTRAINT IF EXISTS ratings_user_id_movie_id_key")
             cursor.execute("ALTER TABLE ratings ADD CONSTRAINT ratings_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
             cursor.execute("ALTER TABLE ratings DROP COLUMN user_id")
@@ -107,7 +116,8 @@ def migrate_schema(conn):
 
 def init_db():
     conn = get_connection()
-    if not conn: return
+    if not conn:
+        return
     try:
         # First, run migrations if necessary
         migrate_schema(conn)

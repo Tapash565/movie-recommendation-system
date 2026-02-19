@@ -41,9 +41,9 @@ export default function DatabaseLoader({ children }: DatabaseLoaderProps) {
     return () => clearTimeout(timer);
   }, [attempts, isConnected, checkConnection]);
 
-  const handleManualRetry = () => {
+  const handleManualRetry = useCallback(() => {
     setAttempts(0); // Reset attempts to trigger immediate check via useEffect
-  };
+  }, []);
 
   return (
     <>

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
@@ -47,7 +48,7 @@ async def lifespan(app: FastAPI):
             logger.info("Firebase Admin initialized successfully.")
     except Exception as e:
         logger.critical(f"Failed to initialize Firebase Admin: {e}")
-        raise RuntimeError(f"Firebase initialization failed: {e}")
+        raise RuntimeError(f"Firebase initialization failed: {e}") from e
 
     # Load basic data on startup
     logger.info("Initializing Movie Recommendation System...")
@@ -88,7 +89,6 @@ async def health_check(request: Request):
     
     is_healthy = db_status and data_loaded
     
-    from fastapi.responses import JSONResponse
     return JSONResponse(
         status_code=200 if is_healthy else 503,
         content={
