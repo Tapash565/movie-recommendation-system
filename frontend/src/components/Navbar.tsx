@@ -85,18 +85,18 @@ export default function Navbar() {
                             {/* Desktop Navigation */}
                             <div className="hidden md:block ml-10">
                                 <div className="flex items-baseline space-x-4">
-                                    <Link href="/" className={navLinkClass('/')}>
+                                    <Link href="/" className={navLinkClass('/')} aria-current={pathname === '/' ? 'page' : undefined}>
                                         Home
                                     </Link>
-                                    <Link href="/search" className={navLinkClass('/search')}>
+                                    <Link href="/search" className={navLinkClass('/search')} aria-current={pathname === '/search' ? 'page' : undefined}>
                                         Search
                                     </Link>
                                     {user && (
                                         <>
-                                            <Link href="/discover" className={navLinkClass('/discover')}>
+                                            <Link href="/discover" className={navLinkClass('/discover')} aria-current={pathname === '/discover' ? 'page' : undefined}>
                                                 Discover
                                             </Link>
-                                            <Link href="/library" className={navLinkClass('/library')}>
+                                            <Link href="/library" className={navLinkClass('/library')} aria-current={pathname === '/library' ? 'page' : undefined}>
                                                 My Library
                                             </Link>
                                         </>

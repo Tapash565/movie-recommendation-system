@@ -7,8 +7,12 @@ import DatabaseLoader from '@/components/DatabaseLoader';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Movie Recommendation System',
-  description: 'Discover your next favorite movie using AI',
+  title: 'MovieMind - AI Powered Movie Recommendations',
+  description: 'Discover your next favorite movie using our intelligent AI recommendation engine. Explore thousands of movies personalized for you.',
+  keywords: ['movie recommendations', 'AI movies', 'film discovery', 'personalized movies'],
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

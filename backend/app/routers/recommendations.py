@@ -30,7 +30,7 @@ def get_recommendations_page(
         logger.error("Movie data not available - returning empty recommendations")
         return []
         
-    logger.info(f"User '{email}' (UID: {firebase_uid}) is viewing discover page.")
+    logger.info(f"User UID: {firebase_uid} is viewing discover page.")
     
     # Get user's library data using firebase_uid
     bookmarks_raw = db.get_user_bookmarks(firebase_uid)

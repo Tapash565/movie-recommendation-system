@@ -13,6 +13,9 @@ from . import database as db
 from . import services
 from .logger import get_logger
 from .routers import auth, movies, users, recommendations
+from .rate_limit import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Suppress unnecessary logs
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -64,13 +67,12 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Shutting down Movie Recommendation System...")
 
-app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
-
 # CORS Middleware
 cors_origins_raw = os.getenv("CORS_ORIGINS")
-if cors_origins_raw:
+if cors_origins_raw and cors_origins_raw != "*":
     cors_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
 else:
+    # Default to production domains and localhost for development
     cors_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -78,13 +80,28 @@ else:
         "https://movie-recommendation-system-deployment.vercel.app",
     ]
 
+app = FastAPI(title="Movie Recommendation System", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Restrict methods
+    allow_headers=["Authorization", "Content-Type"],  # Restrict headers
 )
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; img-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    return response
 
 # Health check endpoint
 @app.get("/api/health")

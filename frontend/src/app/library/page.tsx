@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
+import MovieSkeleton from '@/components/MovieSkeleton';
 
 interface Movie {
     id: number;
@@ -15,9 +16,17 @@ interface Movie {
 }
 
 interface LibraryData {
+    user: string;
     to_watch: Movie[];
     watched: Movie[];
     rated_movies: Movie[];
+    pagination: {
+        page: number;
+        page_size: number;
+        total_to_watch: number;
+        total_watched: number;
+        total_rated: number;
+    };
 }
 
 const TabButton = ({ id, label, count, activeTab, onClick }: {
@@ -29,69 +38,92 @@ const TabButton = ({ id, label, count, activeTab, onClick }: {
 }) => (
     <button
         onClick={() => onClick(id)}
+        aria-selected={activeTab === id}
+        role="tab"
+        aria-controls={`${id}-panel`}
         className={`px-6 py-3 rounded-full font-semibold transition-all ${activeTab === id
             ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
             : 'bg-white/5 text-gray-400 hover:bg-white/10'
             }`}
     >
-        {label} <span className="ml-2 text-xs bg-black/20 px-2 py-0.5 rounded-full">{count}</span>
+        {label} <span className="ml-2 text-xs bg-black/20 px-2 py-0.5 rounded-full" aria-hidden="true">{count}</span>
     </button>
 );
 
 export default function LibraryPage() {
-    const [data, setData] = useState<LibraryData>({ to_watch: [], watched: [], rated_movies: [] });
+    const [data, setData] = useState<LibraryData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'watchlist' | 'watched' | 'rated'>('watchlist');
 
     useEffect(() => {
+        setLoading(true);
         api.get('/library')
             .then((res) => setData(res.data))
             .catch((err) => console.error(err))
             .finally(() => setLoading(false));
     }, []);
 
+    const counts = {
+        watchlist: data?.pagination.total_to_watch || 0,
+        watched: data?.pagination.total_watched || 0,
+        rated: data?.pagination.total_rated || 0
+    };
+
     return (
-        <div className="min-h-screen pb-20 max-w-7xl mx-auto px-6 py-10">
-            <h1 className="text-3xl font-bold mb-8">My Library</h1>
+        <main className="min-h-screen pb-20 max-w-7xl mx-auto px-6 py-10">
+            <header className="mb-8">
+                <h1 className="text-3xl font-bold">My Library</h1>
+            </header>
 
-            {loading ? (
-                <div className="text-center py-20">Loading library...</div>
-            ) : (
-                <>
-                    <div className="flex flex-wrap gap-4 mb-10">
-                        <TabButton id="watchlist" label="Watchlist" count={data.to_watch.length} activeTab={activeTab} onClick={setActiveTab} />
-                        <TabButton id="watched" label="Watched" count={data.watched.length} activeTab={activeTab} onClick={setActiveTab} />
-                        <TabButton id="rated" label="Rated" count={data.rated_movies.length} activeTab={activeTab} onClick={setActiveTab} />
-                    </div>
+            <div className="flex flex-wrap gap-4 mb-10" role="tablist" aria-label="Library Folders">
+                <TabButton id="watchlist" label="Watchlist" count={counts.watchlist} activeTab={activeTab} onClick={setActiveTab} />
+                <TabButton id="watched" label="Watched" count={counts.watched} activeTab={activeTab} onClick={setActiveTab} />
+                <TabButton id="rated" label="Rated" count={counts.rated} activeTab={activeTab} onClick={setActiveTab} />
+            </div>
 
+            <div
+                id={`${activeTab}-panel`}
+                role="tabpanel"
+                aria-labelledby={activeTab}
+                className="min-h-[400px]"
+            >
+                {loading ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        {activeTab === 'watchlist' && data.to_watch.map(movie => (
-                            <MovieCard key={movie.id} movie={movie} />
-                        ))}
-
-                        {activeTab === 'watched' && data.watched.map(movie => (
-                            <MovieCard key={movie.id} movie={movie} />
-                        ))}
-
-                        {activeTab === 'rated' && data.rated_movies.map(movie => (
-                            <div key={movie.id} className="relative group">
-                                <MovieCard movie={movie} />
-                                <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-2 py-1 rounded-md text-xs shadow-md">
-                                    Your rating: {movie.user_rating}
-                                </div>
-                            </div>
+                        {[...Array(10)].map((_, i) => (
+                            <MovieSkeleton key={i} />
                         ))}
                     </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                            {activeTab === 'watchlist' && data?.to_watch.map(movie => (
+                                <MovieCard key={movie.id} movie={movie} />
+                            ))}
 
-                    {((activeTab === 'watchlist' && data.to_watch.length === 0) ||
-                        (activeTab === 'watched' && data.watched.length === 0) ||
-                        (activeTab === 'rated' && data.rated_movies.length === 0)) && (
-                            <div className="text-center py-20 text-gray-500">
-                                No movies in this list yet.
-                            </div>
-                        )}
-                </>
-            )}
-        </div>
+                            {activeTab === 'watched' && data?.watched.map(movie => (
+                                <MovieCard key={movie.id} movie={movie} />
+                            ))}
+
+                            {activeTab === 'rated' && data?.rated_movies.map(movie => (
+                                <div key={movie.id} className="relative group">
+                                    <MovieCard movie={movie} />
+                                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-2 py-1 rounded-md text-xs shadow-md">
+                                        Your rating: {movie.user_rating}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {((activeTab === 'watchlist' && data?.to_watch.length === 0) ||
+                            (activeTab === 'watched' && data?.watched.length === 0) ||
+                            (activeTab === 'rated' && data?.rated_movies.length === 0)) && (
+                                <div className="text-center py-20 text-gray-500" aria-live="polite">
+                                    No movies in this list yet.
+                                </div>
+                            )}
+                    </>
+                )}
+            </div>
+        </main>
     );
 }
