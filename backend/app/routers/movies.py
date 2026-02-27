@@ -4,6 +4,8 @@ from typing import List, Optional
 from .. import services
 from .. import database as db
 from ..dependencies import get_df, get_retriever, get_optional_user
+from ..rate_limit import limiter
+from fastapi import Request
 from ..logger import get_logger
 from ..schemas import Movie, SearchResponse, MovieDetail
 
@@ -30,15 +32,18 @@ def get_trending_movies(df=Depends(get_df)):
     return trending_movies
 
 @router.get("/movies/search", response_model=SearchResponse)
+@limiter.limit("20/minute")
 def search_movies(
+    request: Request,
     q: str = Query(""), 
-    limit: int = 24,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=100),
     order_by: Optional[str] = None,
     df=Depends(get_df)
 ):
-    """Search for movies."""
+    """Search for movies with pagination."""
     results = []
-    result_count = 0
+    total_results = 0
     
     # Check if data is available
     if df.empty:
@@ -47,18 +52,30 @@ def search_movies(
             "search_query": q,
             "movies": [],
             "result_count": 0,
+            "total_results": 0,
+            "page": page,
+            "page_size": page_size,
             "order_by": order_by or ""
         }
     
     if q:
-        logger.info(f"Searching for movies with query: '{q}', order_by: '{order_by}'")
-        results = services.search_movies(q, df, limit=limit, order_by=order_by)
-        result_count = len(results)
+        logger.info(f"Searching for movies with query: '{q}', page: {page}, order_by: '{order_by}'")
+        # Search all first to get total count (this could be optimized later)
+        all_results = services.search_movies(q, df, limit=1000, order_by=order_by)
+        total_results = len(all_results)
+        
+        # Paginate
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        results = all_results[start_idx:end_idx]
     
     return {
         "search_query": q,
         "movies": results,
-        "result_count": result_count,
+        "result_count": len(results),
+        "total_results": total_results,
+        "page": page,
+        "page_size": page_size,
         "order_by": order_by or ""
     }
 

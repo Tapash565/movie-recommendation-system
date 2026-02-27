@@ -19,3 +19,5 @@ uvicorn
 gunicorn
 python-multipart
 jinja2
+slowapi
+redis
