@@ -50,7 +50,6 @@ app = FastAPI(
 )
 
 # CORS Configuration
-# We relax this slightly to allow common deployment scenarios if CORS_ORIGINS is not perfectly set
 cors_origins = os.getenv("CORS_ORIGINS", "").split(",")
 cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
 if not cors_origins:
@@ -58,7 +57,7 @@ if not cors_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins or ["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -120,7 +119,7 @@ async def read_root(request: Request):
     """
 
 @app.get("/api/health")
-@limiter.limit("20/minute") # Increased limit slightly for monitoring
+@limiter.limit("20/minute")
 async def health_check(request: Request):
     """Deep health check including database and data readiness."""
     db_healthy = check_db_health()
@@ -140,7 +139,7 @@ async def health_check(request: Request):
     )
 
 # Include Routers
-# Note: Changing prefix to /api for recommendations as frontend expects /api/discover
+# Using prefix="/api" for recommendations to support /api/discover
 app.include_router(movies.router, prefix="/api", tags=["Movies"])
 app.include_router(recommendations.router, prefix="/api", tags=["Recommendations"])
 app.include_router(users.router, prefix="/api", tags=["Users"])

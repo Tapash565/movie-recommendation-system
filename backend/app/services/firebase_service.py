@@ -7,14 +7,28 @@ logger = get_logger("firebase_service")
 
 def init_firebase():
     """Initialize Firebase Admin SDK."""
+    # 1. If bypass for TESTING is set, skip initialization
+    if os.getenv("TESTING") == "true":
+        logger.info("TESTING mode: Skipping real Firebase initialization.")
+        return
+
     try:
         # Check if already initialized
         firebase_admin.get_app()
         logger.info("Firebase Admin already initialized.")
         return
     except ValueError:
-        # Not initialized, so let's do it
         pass
+
+    # 2. Check for Firebase Emulator
+    emulator_host = os.getenv("FIREBASE_EMULATOR_HOST")
+    if emulator_host:
+        logger.info(f"Using Firebase Emulator: {emulator_host}")
+        # When using emulator, we can often initialize with default/dummy or explicit settings
+        # but the FIREBASE_AUTH_EMULATOR_HOST env var managed by firebase-admin handles the routing
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app()
+        return
 
     service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
     
@@ -25,21 +39,14 @@ def init_firebase():
             firebase_admin.initialize_app(cred)
         else:
             logger.info("Initializing Firebase with default credentials.")
-            # This will try to use GOOGLE_APPLICATION_CREDENTIALS env var or metadata server
             try:
                 firebase_admin.initialize_app()
             except Exception as e:
-                logger.error(f"Failed to initialize Firebase with default credentials: {e}")
-                # Fallback to dummy initialization if in local/test mode to prevent crashes
-                # but log a major warning
-                if os.getenv("ENVIRONMENT") != "production":
-                    logger.warning("Using empty credentials for Firebase (test/local mode only).")
-                    firebase_admin.initialize_app(credentials.AnonymousCredentials())
-                else:
-                    raise
+                logger.exception(f"Failed to initialize Firebase with default credentials: {str(e)}")
+                # Removed AnonymousCredentials fallback as per requirement
+                raise e
         logger.info("Firebase Admin initialized successfully.")
     except Exception as e:
-        logger.error(f"Critical error initializing Firebase: {e}")
-        # In production we might want to let this fail to prevent unauthenticated access
-        if os.getenv("ENVIRONMENT") == "production":
-            raise
+        logger.exception(f"Critical error initializing Firebase: {str(e)}")
+        # Always propagate the failure so callers (and tests) cannot continue with a failed initialization
+        raise e
