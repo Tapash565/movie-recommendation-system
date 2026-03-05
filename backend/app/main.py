@@ -3,12 +3,12 @@ import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from .database import check_db_health, init_db
+from .services.firebase_service import init_firebase
 from . import services
 from .logger import get_logger
 from .rate_limit import limiter
@@ -23,11 +23,13 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Database...")
     init_db()
     
-    # Note: Firebase initialization is handled globally or internally in dependencies
+    logger.info("Initializing Firebase...")
+    init_firebase()
+    
     logger.info("Initializing Movie Recommendation System...")
     # Pre-load data into app state for dependencies to use
     app.state.df = services.load_movie_data()
-    # Lazy-load retriever via dependency or during first request to keep startup speed
+    # Lazy-load retriever via dependency or during first request
     app.state.retriever = None
     
     if not app.state.df.empty:
@@ -48,10 +50,15 @@ app = FastAPI(
 )
 
 # CORS Configuration
-origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+# We relax this slightly to allow common deployment scenarios if CORS_ORIGINS is not perfectly set
+cors_origins = os.getenv("CORS_ORIGINS", "").split(",")
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+if not cors_origins:
+    cors_origins = ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=cors_origins or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,13 +71,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Global Security Headers
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    # Skip for preflight
+    if request.method == "OPTIONS":
+        return await call_next(request)
+        
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     
-    # Enhanced CSP: No unsafe-eval, strict sources, no clickjacking
+    # Enhanced CSP
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
@@ -83,7 +94,7 @@ async def add_security_headers(request: Request, call_next):
     )
     return response
 
-# Global Exception Handler for Production Safety
+# Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception(f"Unhandled error occurred: {str(exc)}")
@@ -109,13 +120,11 @@ async def read_root(request: Request):
     """
 
 @app.get("/api/health")
-@limiter.limit("5/minute")
+@limiter.limit("20/minute") # Increased limit slightly for monitoring
 async def health_check(request: Request):
     """Deep health check including database and data readiness."""
     db_healthy = check_db_health()
     data_loaded = not request.app.state.df.empty
-    
-    # We consider the system "healthy" only if DB is up and data is loaded.
     is_fully_functional = db_healthy and data_loaded
     
     status_code = status.HTTP_200_OK if is_fully_functional else status.HTTP_503_SERVICE_UNAVAILABLE
@@ -130,8 +139,8 @@ async def health_check(request: Request):
         }
     )
 
-# Include Routers with a base /api prefix
-# The routers themselves defining their resource paths (e.g., /movies, /recommendations)
+# Include Routers
+# Note: Changing prefix to /api for recommendations as frontend expects /api/discover
 app.include_router(movies.router, prefix="/api", tags=["Movies"])
 app.include_router(recommendations.router, prefix="/api", tags=["Recommendations"])
 app.include_router(users.router, prefix="/api", tags=["Users"])
