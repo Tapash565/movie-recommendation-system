@@ -1,4 +1,5 @@
 import os
+import asyncio
 import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
     init_db()
     
     logger.info("Initializing Firebase...")
-    init_firebase()
+    await asyncio.to_thread(init_firebase)
     
     logger.info("Initializing Movie Recommendation System...")
     # Pre-load data into app state for dependencies to use

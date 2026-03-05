@@ -25,10 +25,7 @@ def init_firebase() -> None:
     emulator_host = os.getenv("FIREBASE_EMULATOR_HOST")
     if emulator_host:
         logger.info(f"Using Firebase Emulator: {emulator_host}")
-        # When using emulator, we can often initialize with default/dummy or explicit settings
-        # but the FIREBASE_AUTH_EMULATOR_HOST env var managed by firebase-admin handles the routing
-        if not firebase_admin._apps:
-            firebase_admin.initialize_app()
+        firebase_admin.initialize_app()
         return
 
     service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
@@ -42,12 +39,10 @@ def init_firebase() -> None:
             logger.info("Initializing Firebase with default credentials.")
             try:
                 firebase_admin.initialize_app()
-            except Exception as e:
-                logger.exception(f"Failed to initialize Firebase with default credentials: {str(e)}")
-                # Removed AnonymousCredentials fallback as per requirement
-                raise e
+            except Exception:
+                logger.exception("Failed to initialize Firebase with default credentials")
+                raise
         logger.info("Firebase Admin initialized successfully.")
-    except Exception as e:
-        logger.exception(f"Critical error initializing Firebase: {str(e)}")
-        # Always propagate the failure so callers (and tests) cannot continue with a failed initialization
-        raise e
+    except Exception:
+        logger.exception("Critical error initializing Firebase")
+        raise
