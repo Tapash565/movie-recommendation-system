@@ -7,9 +7,11 @@ from rapidfuzz import process, fuzz
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_core.documents import Document
+from langchain_core.retrievers import RetrieverLike
 from ..logger import get_logger
 from .utils import sanitize_for_json, get_poster_url
 from datetime import datetime
+from typing import Any
 
 logger = get_logger("movie_service")
 
@@ -18,19 +20,23 @@ DATA_DIR = BASE_DIR / "data"
 MOVIE_LIST_PATH = DATA_DIR / "movie_list.pkl"
 FAISS_INDEX_PATH = DATA_DIR / "movie_recommendation_faiss"
 
-def load_movie_data(path=MOVIE_LIST_PATH):
+
+def load_movie_data(path: Path = MOVIE_LIST_PATH) -> pd.DataFrame:
+    """Load movie data from pickle file."""
     try:
         return joblib.load(path)
     except Exception as e:
         logger.error(f"Error loading movie list: {e}")
         return pd.DataFrame()
 
-def get_movie_details(identifier, df):
+
+def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any] | None:
+    """Get detailed information for a movie by ID or title."""
     if isinstance(identifier, int):
         match = df[df['id'] == identifier]
     else:
         match = df[df['title'].str.lower() == str(identifier).lower()]
-        
+
     if not match.empty:
         details = match.iloc[0].to_dict()
         for field in ['cast', 'crew', 'genres', 'keywords', 'production_companies']:
@@ -58,13 +64,13 @@ def get_movie_details(identifier, df):
                 details[field] = [item for item in processed_items if item and item.strip()]
             else:
                 details[field] = []
-        
+
         overview_value = details.get('overview')
         if overview_value is None or (isinstance(overview_value, float) and str(overview_value) == 'nan'):
             details['overview'] = ""
         else:
             details['overview'] = str(overview_value)
-        
+
         for field in ['budget', 'revenue', 'runtime', 'vote_average', 'vote_count', 'popularity']:
             if field in details:
                 val = details[field]
@@ -82,22 +88,25 @@ def get_movie_details(identifier, df):
                     details['year'] = str(date_obj.year)
                 else:
                     details['year'] = 'N/A'
-            except:
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse release date '{details.get('release_date')}': {e}")
                 details['year'] = 'N/A'
-        
+
         details['poster_url'] = get_poster_url(details.get('poster_path'))
         return sanitize_for_json(details)
     return None
 
-def search_movies(query, df, limit=12, order_by=None):
+
+def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str | None = None) -> list[dict[str, Any]]:
+    """Search movies by title with fuzzy matching."""
     query = query.strip().lower()
     if not query:
         return []
-    
-    results_ordered = []
-    seen_titles = set()
 
-    def add_unique(titles):
+    results_ordered: list[str] = []
+    seen_titles: set[str] = set()
+
+    def add_unique(titles: list[str]) -> bool:
         for t in titles:
             if t not in seen_titles:
                 results_ordered.append(t)
@@ -107,37 +116,39 @@ def search_movies(query, df, limit=12, order_by=None):
         return False
 
     exact_matches = df[df['title'].str.lower() == query]['title'].tolist()
-    if add_unique(exact_matches): 
+    if add_unique(exact_matches):
         movies = [get_movie_details(t, df) for t in results_ordered]
         return _order_movies(movies, order_by)
-    
+
     starts_with = df[df['title'].str.lower().str.startswith(query)]['title'].tolist()
-    if add_unique(starts_with): 
+    if add_unique(starts_with):
         movies = [get_movie_details(t, df) for t in results_ordered]
         return _order_movies(movies, order_by)
-    
+
     contains = df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist()
-    if add_unique(contains): 
+    if add_unique(contains):
         movies = [get_movie_details(t, df) for t in results_ordered]
         return _order_movies(movies, order_by)
 
     titles_list = df['title'].tolist()
     fuzzy_results = process.extract(query, titles_list, scorer=fuzz.token_set_ratio, limit=limit)
     fuzzy_matches = [match[0] for match in fuzzy_results if match[1] >= 80]
-    if add_unique(fuzzy_matches): 
+    if add_unique(fuzzy_matches):
         movies = [get_movie_details(t, df) for t in results_ordered]
         return _order_movies(movies, order_by)
 
     if 'keywords' in df.columns:
         keyword_matches = df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist()
-        if add_unique(keyword_matches): 
+        if add_unique(keyword_matches):
             movies = [get_movie_details(t, df) for t in results_ordered]
             return _order_movies(movies, order_by)
 
     movies = [get_movie_details(t, df) for t in results_ordered]
     return _order_movies(movies, order_by)
 
-def _order_movies(movies, order_by):
+
+def _order_movies(movies: list[dict[str, Any]], order_by: str | None) -> list[dict[str, Any]]:
+    """Order movies by specified criteria."""
     if not movies:
         return movies
     if order_by == 'rating':
@@ -147,20 +158,32 @@ def _order_movies(movies, order_by):
     else:
         return movies
 
-def load_retriever(path=FAISS_INDEX_PATH):
+
+def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
+    """Load the FAISS retriever for movie recommendations.
+
+    Note: allow_dangerous_deserialization=True is required because FAISS uses
+    pickle serialization. This is safe when:
+    1. The index files are stored in a secure, non-public location
+    2. The files are generated by a trusted pipeline
+    3. Consider adding file checksum validation for production
+    """
     logger.info(f"Loading Recommendation Model from {path}...")
     try:
         if not os.path.exists(path):
             logger.warning(f"FAISS index directory {path} not found.")
             return None
         embedding = HuggingFaceEndpointEmbeddings(model='sentence-transformers/all-MiniLM-L6-v2')
+        # Security: Only enable if index files are from trusted sources
         vectorstore = FAISS.load_local(path, embedding, allow_dangerous_deserialization=True)
         return vectorstore.as_retriever(search_type="similarity", search_kwargs={"fetch_k": 30})
     except Exception as e:
         logger.error(f"Error loading FAISS model: {e}")
         return None
 
-def get_recommendations(title, df, retriever, k=5):
+
+def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike | None, k: int = 5) -> list[dict[str, Any]]:
+    """Get movie recommendations based on a title."""
     try:
         title = title.strip()
         if title not in df['title'].values or retriever is None:
@@ -172,7 +195,14 @@ def get_recommendations(title, df, retriever, k=5):
         logger.error(f"Error generating recommendations: {e}")
         return []
 
-def get_personalized_recommendations(user_library_ids, df, retriever, limit=16):
+
+def get_personalized_recommendations(
+    user_library_ids: list[int],
+    df: pd.DataFrame,
+    retriever: RetrieverLike | None,
+    limit: int = 16
+) -> list[dict[str, Any]]:
+    """Get personalized recommendations based on user's movie library."""
     try:
         if not user_library_ids or retriever is None:
             return []
@@ -183,7 +213,7 @@ def get_personalized_recommendations(user_library_ids, df, retriever, limit=16):
                 library_titles.append(details['title'])
         if not library_titles:
             return []
-        recommendation_scores = {}
+        recommendation_scores: dict[int, dict[str, Any]] = {}
         for title in library_titles:
             try:
                 recs = get_recommendations(title, df, retriever, k=10)
@@ -194,9 +224,14 @@ def get_personalized_recommendations(user_library_ids, df, retriever, limit=16):
                     if movie_id not in recommendation_scores:
                         recommendation_scores[movie_id] = {'score': 0, 'details': rec}
                     recommendation_scores[movie_id]['score'] += 1
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to get recommendations for '{title}': {e}")
                 continue
-        sorted_recommendations = sorted(recommendation_scores.values(), key=lambda x: (x['score'], x['details'].get('vote_average', 0) or 0), reverse=True)
+        sorted_recommendations = sorted(
+            recommendation_scores.values(),
+            key=lambda x: (x['score'], x['details'].get('vote_average', 0) or 0),
+            reverse=True
+        )
         return [item['details'] for item in sorted_recommendations[:limit]]
     except Exception as e:
         logger.error(f"Error generating personalized recommendations: {e}")
