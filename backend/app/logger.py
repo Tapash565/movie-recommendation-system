@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+from logging.handlers import RotatingFileHandler
 
 # Create a custom logger
 logger = logging.getLogger("movie_recommendation")
@@ -11,7 +12,8 @@ logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
 
 # Create handlers
 c_handler = logging.StreamHandler(sys.stdout)
-f_handler = logging.FileHandler("app.log")
+# Max size 10MB, keep 5 backups
+f_handler = RotatingFileHandler("app.log", maxBytes=10*1024*1024, backupCount=5)
 
 # Create formatters and add it to handlers
 log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

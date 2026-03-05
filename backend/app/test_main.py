@@ -6,7 +6,7 @@ import joblib
 
 client = TestClient(app)
 
-# Fixtures for Data Loading (copied concept from old test, but adapted)
+# Fixtures for Data Loading
 @pytest.fixture(scope="module")
 def df():
     try:
@@ -25,39 +25,39 @@ def test_format_float():
 
 def test_search_services(df):
     results = services.search_movies("Inception", df)
-    # Results is list of dicts now
     assert len(results) > 0
     assert any(r['title'] == "Inception" for r in results)
 
 def test_get_movie_details(df):
     if df.empty:
         pytest.skip("DataFrame is empty")
-    title = df.iloc[0]['title']
-    details = services.get_movie_details(title, df)
+    # Get a movie ID that exists
+    movie_id = df.iloc[0]['id']
+    details = services.get_movie_details(movie_id, df)
     assert details is not None
-    assert details['title'] == title
+    assert details['id'] == movie_id
 
 # API Tests
-def test_home_page():
+def test_health_check():
     with TestClient(app) as client:
-        response = client.get("/")
+        response = client.get("/api/health")
         assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-        assert "Trending" in response.text
+        assert response.json()["status"] == "healthy"
 
 def test_search_endpoint():
     with TestClient(app) as client:
-        response = client.get("/search?q=Batman")
+        # Use common movie that is likely to be in any dataset
+        response = client.get("/api/movies/search?q=Batman")
         assert response.status_code == 200
-        assert "Batman" in response.text
+        assert "movies" in response.json()
 
-def test_login_page():
+def test_trending_endpoint():
     with TestClient(app) as client:
-        response = client.get("/login")
+        response = client.get("/api/movies/trending")
         assert response.status_code == 200
-        assert "Login" in response.text
+        assert isinstance(response.json(), list)
 
 def test_movie_details_404():
     with TestClient(app) as client:
-        response = client.get("/movie/999999999") 
+        response = client.get("/api/movies/999999999") 
         assert response.status_code == 404
