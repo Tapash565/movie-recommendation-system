@@ -30,19 +30,23 @@ def init_firebase() -> None:
 
     service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
 
-    try:
-        if service_account_path and os.path.exists(service_account_path):
-            logger.info(f"Initializing Firebase with service account from: {service_account_path}")
-            cred = credentials.Certificate(service_account_path)
-            firebase_admin.initialize_app(cred)
-        else:
-            logger.info("Initializing Firebase with default credentials.")
-            try:
-                firebase_admin.initialize_app()
-            except Exception:
-                logger.exception("Failed to initialize Firebase with default credentials")
-                raise
+    # Fail fast if service account path is set but doesn't exist
+    if service_account_path:
+        if not os.path.exists(service_account_path):
+            error_msg = f"FIREBASE_SERVICE_ACCOUNT_PATH is set to '{service_account_path}' but the file does not exist."
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+        logger.info(f"Initializing Firebase with service account from: {service_account_path}")
+        cred = credentials.Certificate(service_account_path)
+        firebase_admin.initialize_app(cred)
         logger.info("Firebase Admin initialized successfully.")
+        return
+
+    # Only attempt default credentials when env var is unset/empty
+    logger.info("Initializing Firebase with default credentials.")
+    try:
+        firebase_admin.initialize_app()
     except Exception:
-        logger.exception("Critical error initializing Firebase")
+        logger.exception("Failed to initialize Firebase with default credentials")
         raise
+    logger.info("Firebase Admin initialized successfully.")
