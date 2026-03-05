@@ -1,7 +1,7 @@
 import os
 import firebase_admin
 from firebase_admin import credentials
-from google.auth.credentials import AnonymousCredentials
+
 from ..logger import get_logger
 
 logger = get_logger("firebase_service")
@@ -9,10 +9,13 @@ logger = get_logger("firebase_service")
 
 def init_firebase() -> None:
     """Initialize Firebase Admin SDK."""
-    # 1. If bypass for TESTING is set, skip initialization
+    # 1. Skip initialization only when both TESTING and ALLOW_AUTH_BYPASS are "true"
+    # This must match the auth-bypass gating in dependencies.py so auth paths
+    # won't call Firebase when it hasn't been initialized.
     testing_value = os.getenv("TESTING", "").strip().lower()
-    if testing_value in {"1", "true", "yes", "on"}:
-        logger.info("TESTING mode: Skipping real Firebase initialization.")
+    allow_bypass = os.getenv("ALLOW_AUTH_BYPASS", "").strip().lower()
+    if testing_value == "true" and allow_bypass == "true":
+        logger.info("TESTING + ALLOW_AUTH_BYPASS mode: Skipping Firebase initialization.")
         return
 
     try:
@@ -34,7 +37,7 @@ def init_firebase() -> None:
         logger.info(f"Using Firebase Emulator(s): {active_emulators}")
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "demo-project")
         firebase_admin.initialize_app(
-            credential=credentials.Base(AnonymousCredentials()),
+            credential=credentials.ApplicationDefault(),
             options={"projectId": project_id},
         )
         return

@@ -81,17 +81,19 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     
-    # Enhanced CSP
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "img-src 'self' data: https://image.tmdb.org blob:; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "connect-src 'self' https://vapi-public.s3.amazonaws.com https://api.vapi.ai; "
-        "frame-ancestors 'none'; "
-        "form-action 'self';"
-    )
+    # Skip strict CSP for docs pages (Swagger UI loads from cdn.jsdelivr.net)
+    docs_paths = ("/api/docs", "/api/redoc", "/api/openapi.json")
+    if not request.url.path.startswith(docs_paths):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: https://image.tmdb.org blob:; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "connect-src 'self' https://vapi-public.s3.amazonaws.com https://api.vapi.ai; "
+            "frame-ancestors 'none'; "
+            "form-action 'self';"
+        )
     return response
 
 # Global Exception Handler
