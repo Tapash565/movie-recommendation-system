@@ -1,6 +1,7 @@
 import os
 import firebase_admin
 from firebase_admin import credentials
+from google.auth.credentials import AnonymousCredentials
 from ..logger import get_logger
 
 logger = get_logger("firebase_service")
@@ -9,7 +10,8 @@ logger = get_logger("firebase_service")
 def init_firebase() -> None:
     """Initialize Firebase Admin SDK."""
     # 1. If bypass for TESTING is set, skip initialization
-    if os.getenv("TESTING") == "true":
+    testing_value = os.getenv("TESTING", "").strip().lower()
+    if testing_value in {"1", "true", "yes", "on"}:
         logger.info("TESTING mode: Skipping real Firebase initialization.")
         return
 
@@ -21,11 +23,20 @@ def init_firebase() -> None:
     except ValueError:
         pass
 
-    # 2. Check for Firebase Emulator
-    emulator_host = os.getenv("FIREBASE_EMULATOR_HOST")
-    if emulator_host:
-        logger.info(f"Using Firebase Emulator: {emulator_host}")
-        firebase_admin.initialize_app()
+    # 2. Check for Firebase Emulator (service-specific env vars)
+    emulator_vars = {
+        "FIRESTORE_EMULATOR_HOST": os.getenv("FIRESTORE_EMULATOR_HOST"),
+        "FIREBASE_AUTH_EMULATOR_HOST": os.getenv("FIREBASE_AUTH_EMULATOR_HOST"),
+        "FIREBASE_DATABASE_EMULATOR_HOST": os.getenv("FIREBASE_DATABASE_EMULATOR_HOST"),
+    }
+    active_emulators = {k: v for k, v in emulator_vars.items() if v}
+    if active_emulators:
+        logger.info(f"Using Firebase Emulator(s): {active_emulators}")
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "demo-project")
+        firebase_admin.initialize_app(
+            credential=credentials.Base(AnonymousCredentials()),
+            options={"projectId": project_id},
+        )
         return
 
     service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
