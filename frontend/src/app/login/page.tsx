@@ -48,16 +48,19 @@ export default function LoginPage() {
                             required
                         />
                     </div>
-                    <div>
+                    <div className="flex items-center justify-between">
                         <label className="block text-sm font-medium mb-1">Password</label>
-                        <input
-                            type="password"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:outline-none focus:border-purple-500 transition-colors"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                        <Link href="/forgot-password" className="text-xs text-purple-400 hover:text-purple-300">
+                            Forgot password?
+                        </Link>
                     </div>
+                    <input
+                        type="password"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:outline-none focus:border-purple-500 transition-colors"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
                     <button
                         type="submit"
                         disabled={loading}

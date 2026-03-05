@@ -1,6 +1,6 @@
 import os
 import firebase_admin
-from firebase_admin import credentials
+from firebase_admin import credentials, auth as firebase_auth
 
 from ..logger import get_logger
 
@@ -64,3 +64,15 @@ def init_firebase() -> None:
         logger.exception("Failed to initialize Firebase with default credentials")
         raise
     logger.info("Firebase Admin initialized successfully.")
+
+
+def delete_firebase_user(uid: str) -> None:
+    """Delete a Firebase user by UID."""
+    try:
+        firebase_auth.delete_user(uid)
+        logger.info(f"Successfully deleted Firebase user: {uid}")
+    except firebase_auth.UserNotFoundError:
+        logger.warning(f"Firebase user not found: {uid}")
+    except Exception:
+        logger.exception(f"Failed to delete Firebase user: {uid}")
+        raise

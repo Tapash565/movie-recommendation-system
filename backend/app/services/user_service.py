@@ -96,3 +96,15 @@ def remove_bookmark(firebase_uid: str, movie_id: int) -> bool:
 def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float) -> bool:
     """Add or update a movie rating for a user. Returns True on success, False on failure."""
     return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)
+
+
+def delete_user_data(firebase_uid: str) -> bool:
+    """Delete all user data from the database (bookmarks and ratings)."""
+    try:
+        user_repo.delete_user_bookmarks(firebase_uid)
+        user_repo.delete_user_ratings(firebase_uid)
+        logger.info(f"Successfully deleted all user data for UID: {firebase_uid}")
+        return True
+    except Exception:
+        logger.exception(f"Failed to delete user data for UID: {firebase_uid}")
+        return False

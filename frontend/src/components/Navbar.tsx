@@ -99,6 +99,9 @@ export default function Navbar() {
                                             <Link href="/library" className={navLinkClass('/library')} aria-current={pathname === '/library' ? 'page' : undefined}>
                                                 My Library
                                             </Link>
+                                            <Link href="/profile" className={navLinkClass('/profile')} aria-current={pathname === '/profile' ? 'page' : undefined}>
+                                                Profile
+                                            </Link>
                                         </>
                                     )}
                                 </div>

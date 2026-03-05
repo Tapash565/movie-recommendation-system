@@ -147,3 +147,45 @@ class UserRepository:
             if cursor:
                 cursor.close()
             release_connection(conn)
+
+    @staticmethod
+    def delete_user_bookmarks(firebase_uid):
+        """Delete all bookmarks for a user."""
+        conn = get_connection()
+        if not conn:
+            return False
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM bookmarks WHERE firebase_uid = %s", (firebase_uid,))
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            logger.exception(f"Error deleting bookmarks for user {firebase_uid}")
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def delete_user_ratings(firebase_uid):
+        """Delete all ratings for a user."""
+        conn = get_connection()
+        if not conn:
+            return False
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM ratings WHERE firebase_uid = %s", (firebase_uid,))
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            logger.exception(f"Error deleting ratings for user {firebase_uid}")
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            release_connection(conn)
