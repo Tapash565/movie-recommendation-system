@@ -5,7 +5,8 @@ from ..logger import get_logger
 
 logger = get_logger("firebase_service")
 
-def init_firebase():
+
+def init_firebase() -> None:
     """Initialize Firebase Admin SDK."""
     # 1. If bypass for TESTING is set, skip initialization
     if os.getenv("TESTING") == "true":
@@ -31,7 +32,7 @@ def init_firebase():
         return
 
     service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-    
+
     try:
         if service_account_path and os.path.exists(service_account_path):
             logger.info(f"Initializing Firebase with service account from: {service_account_path}")
