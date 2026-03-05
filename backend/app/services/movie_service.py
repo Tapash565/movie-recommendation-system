@@ -177,8 +177,8 @@ def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
         # Security: Only enable if index files are from trusted sources
         vectorstore = FAISS.load_local(path, embedding, allow_dangerous_deserialization=True)
         return vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6, "fetch_k": 30})
-    except Exception as e:
-        logger.error(f"Error loading FAISS model: {e}")
+    except Exception:
+        logger.exception("Error loading FAISS model")
         return None
 
 
@@ -189,11 +189,14 @@ def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike |
         if title not in df['title'].values or retriever is None:
             return []
         results = retriever.invoke(title)
-        recommendation_titles = [doc.metadata['title'] for doc in results if doc.metadata['title'] != title][:k]
+        recommendation_titles = [
+            t for doc in results
+            if (t := doc.metadata.get('title')) and t != title
+        ][:k]
         # Filter out None values from get_movie_details
         return [m for m in (get_movie_details(t, df) for t in recommendation_titles) if m]
-    except Exception as e:
-        logger.error(f"Error generating recommendations: {e}")
+    except Exception:
+        logger.exception("Error generating recommendations")
         return []
 
 
@@ -215,18 +218,19 @@ def get_personalized_recommendations(
         if not library_titles:
             return []
         recommendation_scores: dict[int, dict[str, Any]] = {}
+        user_library_set = set(user_library_ids)
         for title in library_titles:
             try:
                 recs = get_recommendations(title, df, retriever, k=10)
                 for rec in recs:
                     movie_id = rec['id']
-                    if movie_id in user_library_ids:
+                    if movie_id in user_library_set:
                         continue
                     if movie_id not in recommendation_scores:
                         recommendation_scores[movie_id] = {'score': 0, 'details': rec}
                     recommendation_scores[movie_id]['score'] += 1
-            except Exception as e:
-                logger.warning(f"Failed to get recommendations for '{title}': {e}")
+            except Exception:
+                logger.warning(f"Failed to get recommendations for '{title}'", exc_info=True)
                 continue
         sorted_recommendations = sorted(
             recommendation_scores.values(),
@@ -234,6 +238,6 @@ def get_personalized_recommendations(
             reverse=True
         )
         return [item['details'] for item in sorted_recommendations[:limit]]
-    except Exception as e:
-        logger.error(f"Error generating personalized recommendations: {e}")
+    except Exception:
+        logger.exception("Error generating personalized recommendations")
         return []
