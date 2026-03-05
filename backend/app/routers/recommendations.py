@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from ..schemas import Movie
 
 from .. import services
-from .. import database as db
+from ..repositories import user_repo
 from ..dependencies import get_df, get_retriever, get_current_user
 from ..logger import get_logger
+from ..rate_limit import limiter
 
 # Initialize logger for recommendations
 logger = get_logger("recommendations")
@@ -13,7 +14,9 @@ logger = get_logger("recommendations")
 router = APIRouter()
 
 @router.get("/discover", response_model=List[Movie])
+@limiter.limit("10/minute")
 def get_recommendations_page(
+    request: Request,
     user=Depends(get_current_user), 
     df=Depends(get_df), 
     retriever=Depends(get_retriever)
@@ -33,8 +36,8 @@ def get_recommendations_page(
     logger.info(f"User UID: {firebase_uid} is viewing discover page.")
     
     # Get user's library data using firebase_uid
-    bookmarks_raw = db.get_user_bookmarks(firebase_uid)
-    ratings_raw = db.get_user_ratings(firebase_uid)
+    bookmarks_raw = user_repo.get_user_bookmarks(firebase_uid)
+    ratings_raw = user_repo.get_user_ratings(firebase_uid)
     
     # Collect movie IDs from watched movies and highly rated movies
     library_ids = set()

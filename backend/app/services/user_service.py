@@ -1,4 +1,4 @@
-from .. import database as db
+from ..repositories import user_repo
 from .movie_service import get_movie_details
 from ..logger import get_logger
 
@@ -9,8 +9,8 @@ def get_user_library(firebase_uid, email, df, page=1, page_size=12):
     Get and paginate the user's movie library.
     """
     # Get user data from database
-    bookmarks_raw = db.get_user_bookmarks(firebase_uid)
-    ratings_raw = db.get_user_ratings(firebase_uid)
+    bookmarks_raw = user_repo.get_user_bookmarks(firebase_uid)
+    ratings_raw = user_repo.get_user_ratings(firebase_uid)
     
     # Filter by status
     all_to_watch = [b for b in bookmarks_raw if b['status'] == 'to_watch']
@@ -70,10 +70,10 @@ def get_user_library(firebase_uid, email, df, page=1, page_size=12):
     }
 
 def add_bookmark(firebase_uid, movie_id, movie_title, status):
-    return db.add_bookmark(firebase_uid, movie_id, movie_title, status)
+    return user_repo.add_bookmark(firebase_uid, movie_id, movie_title, status)
 
 def remove_bookmark(firebase_uid, movie_id):
-    return db.remove_bookmark(firebase_uid, movie_id)
+    return user_repo.remove_bookmark(firebase_uid, movie_id)
 
 def add_rating(firebase_uid, movie_id, movie_title, rating):
-    return db.add_rating(firebase_uid, movie_id, movie_title, rating)
+    return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)

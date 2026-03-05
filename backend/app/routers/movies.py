@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 
 from .. import services
-from .. import database as db
+from ..repositories import user_repo
 from ..dependencies import get_df, get_retriever, get_optional_user
 from ..rate_limit import limiter
 from fastapi import Request
@@ -15,7 +15,8 @@ logger = get_logger("movies")
 router = APIRouter()
 
 @router.get("/movies/trending", response_model=List[Movie])
-def get_trending_movies(df=Depends(get_df)):
+@limiter.limit("10/minute")
+def get_trending_movies(request: Request, df=Depends(get_df)):
     """Get trending movies (random sample of 12)."""
     # Check if data is available
     if df.empty:
@@ -80,7 +81,9 @@ def search_movies(
     }
 
 @router.get("/movies/{movie_id}", response_model=MovieDetail)
+@limiter.limit("30/minute")
 def get_movie_details_api(
+    request: Request,
     movie_id: int, 
     user=Depends(get_optional_user),
     df=Depends(get_df),
@@ -103,8 +106,8 @@ def get_movie_details_api(
     if user:
         firebase_uid = user.get("uid")
         if firebase_uid:
-            bookmark_status = db.get_bookmark(firebase_uid, movie_id)
-            rating_val = db.get_rating(firebase_uid, movie_id)
+            bookmark_status = user_repo.get_bookmark_status(firebase_uid, movie_id)
+            rating_val = user_repo.get_rating(firebase_uid, movie_id)
             if rating_val is not None:
                 user_rating = rating_val
             
@@ -115,4 +118,3 @@ def get_movie_details_api(
     movie_data['user_rating'] = user_rating
     
     return movie_data
-
