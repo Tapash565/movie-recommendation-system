@@ -25,8 +25,8 @@ def load_movie_data(path: Path = MOVIE_LIST_PATH) -> pd.DataFrame:
     """Load movie data from pickle file."""
     try:
         return joblib.load(path)
-    except Exception as e:
-        logger.error(f"Error loading movie list: {e}")
+    except Exception:
+        logger.exception("Error loading movie list")
         return pd.DataFrame()
 
 
@@ -176,7 +176,7 @@ def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
         embedding = HuggingFaceEndpointEmbeddings(model='sentence-transformers/all-MiniLM-L6-v2')
         # Security: Only enable if index files are from trusted sources
         vectorstore = FAISS.load_local(path, embedding, allow_dangerous_deserialization=True)
-        return vectorstore.as_retriever(search_type="similarity", search_kwargs={"fetch_k": 30})
+        return vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6, "fetch_k": 30})
     except Exception as e:
         logger.error(f"Error loading FAISS model: {e}")
         return None
@@ -188,7 +188,7 @@ def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike |
         title = title.strip()
         if title not in df['title'].values or retriever is None:
             return []
-        results = retriever.invoke(title, k=k+1)
+        results = retriever.invoke(title)
         recommendation_titles = [doc.metadata['title'] for doc in results if doc.metadata['title'] != title][:k]
         return [get_movie_details(t, df) for t in recommendation_titles]
     except Exception as e:

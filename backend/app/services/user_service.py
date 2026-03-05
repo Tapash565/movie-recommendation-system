@@ -83,16 +83,16 @@ def get_user_library(
     }
 
 
-def add_bookmark(firebase_uid: str, movie_id: int, movie_title: str, status: str) -> dict[str, Any]:
-    """Add a movie bookmark for a user."""
+def add_bookmark(firebase_uid: str, movie_id: int, movie_title: str, status: str) -> bool:
+    """Add a movie bookmark for a user. Returns True on success, False on failure."""
     return user_repo.add_bookmark(firebase_uid, movie_id, movie_title, status)
 
 
-def remove_bookmark(firebase_uid: str, movie_id: int) -> dict[str, Any]:
-    """Remove a movie bookmark for a user."""
+def remove_bookmark(firebase_uid: str, movie_id: int) -> bool:
+    """Remove a movie bookmark for a user. Returns True on success, False on failure."""
     return user_repo.remove_bookmark(firebase_uid, movie_id)
 
 
-def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float) -> dict[str, Any]:
-    """Add or update a movie rating for a user."""
+def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float) -> bool:
+    """Add or update a movie rating for a user. Returns True on success, False on failure."""
     return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)
