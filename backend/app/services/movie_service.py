@@ -27,7 +27,7 @@ def load_movie_data(path: Path = MOVIE_LIST_PATH) -> pd.DataFrame:
         return joblib.load(path)
     except Exception:
         logger.exception("Error loading movie list")
-        return pd.DataFrame()
+        raise
 
 
 def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any] | None:
@@ -229,7 +229,7 @@ def get_personalized_recommendations(
                     if movie_id not in recommendation_scores:
                         recommendation_scores[movie_id] = {'score': 0, 'details': rec}
                     recommendation_scores[movie_id]['score'] += 1
-            except Exception:
+            except (KeyError, TypeError, ValueError):
                 logger.warning(f"Failed to get recommendations for '{title}'", exc_info=True)
                 continue
         sorted_recommendations = sorted(
