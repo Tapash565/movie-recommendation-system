@@ -117,33 +117,33 @@ def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str |
 
     exact_matches = df[df['title'].str.lower() == query]['title'].tolist()
     if add_unique(exact_matches):
-        movies = [get_movie_details(t, df) for t in results_ordered]
+        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
         return _order_movies(movies, order_by)
 
-    starts_with = df[df['title'].str.lower().str.startswith(query)]['title'].tolist()
+    starts_with = df[df['title'].str.lower().str.startswith(query, na=False)]['title'].tolist()
     if add_unique(starts_with):
-        movies = [get_movie_details(t, df) for t in results_ordered]
+        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
         return _order_movies(movies, order_by)
 
     contains = df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist()
     if add_unique(contains):
-        movies = [get_movie_details(t, df) for t in results_ordered]
+        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
         return _order_movies(movies, order_by)
 
     titles_list = df['title'].tolist()
     fuzzy_results = process.extract(query, titles_list, scorer=fuzz.token_set_ratio, limit=limit)
     fuzzy_matches = [match[0] for match in fuzzy_results if match[1] >= 80]
     if add_unique(fuzzy_matches):
-        movies = [get_movie_details(t, df) for t in results_ordered]
+        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
         return _order_movies(movies, order_by)
 
     if 'keywords' in df.columns:
         keyword_matches = df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist()
         if add_unique(keyword_matches):
-            movies = [get_movie_details(t, df) for t in results_ordered]
+            movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
             return _order_movies(movies, order_by)
 
-    movies = [get_movie_details(t, df) for t in results_ordered]
+    movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
     return _order_movies(movies, order_by)
 
 
@@ -190,7 +190,8 @@ def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike |
             return []
         results = retriever.invoke(title)
         recommendation_titles = [doc.metadata['title'] for doc in results if doc.metadata['title'] != title][:k]
-        return [get_movie_details(t, df) for t in recommendation_titles]
+        # Filter out None values from get_movie_details
+        return [m for m in (get_movie_details(t, df) for t in recommendation_titles) if m]
     except Exception as e:
         logger.error(f"Error generating recommendations: {e}")
         return []
