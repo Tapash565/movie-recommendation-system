@@ -121,16 +121,23 @@ async def read_root(request: Request):
     </html>
     """
 
-@app.get("/api/health")
-@limiter.limit("20/minute")
+@app.get("/health")
+@limiter.limit("100/minute")
 async def health_check(request: Request):
+    """Simple health check for platform infrastructure (no /api prefix)."""
+    return {"status": "ok", "service": "movie-recommendation-api"}
+
+
+@app.get("/api/health")
+@limiter.limit("100/minute")
+async def deep_health_check(request: Request):
     """Deep health check including database and data readiness."""
     db_healthy = check_db_health()
     data_loaded = not request.app.state.df.empty
     is_fully_functional = db_healthy and data_loaded
-    
+
     status_code = status.HTTP_200_OK if is_fully_functional else status.HTTP_503_SERVICE_UNAVAILABLE
-    
+
     return JSONResponse(
         status_code=status_code,
         content={
