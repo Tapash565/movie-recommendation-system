@@ -41,7 +41,7 @@ async def get_current_user(authorization: str = Header(None)):
         decoded_token = await asyncio.to_thread(firebase_auth.verify_id_token, token)
         return decoded_token
     except Exception as e:
-        logger.exception(f"Auth verification failed: {str(e)}")
+        logger.exception("Auth verification failed")
         raise HTTPException(status_code=401, detail="Invalid authentication token") from e
 
 
@@ -57,6 +57,6 @@ async def get_optional_user(authorization: Optional[str] = Header(None)):
     try:
         decoded_token = await asyncio.to_thread(firebase_auth.verify_id_token, token)
         return decoded_token
-    except Exception as e:
-        logger.exception(f"Optional auth verification failed: {str(e)}")
+    except Exception:
+        logger.exception("Optional auth verification failed")
         return None

@@ -102,3 +102,8 @@ _load_environment_file()
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
+
+
+def clear_settings_cache() -> None:
+    """Clear the lru_cache on get_settings so tests can reload Settings with altered env vars."""
+    get_settings.cache_clear()

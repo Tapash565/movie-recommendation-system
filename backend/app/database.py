@@ -36,12 +36,12 @@ def create_pool():
 
 
 def get_connection():
+    """Return a connection from the pool, creating the pool on first call.
+    Raises RuntimeError (from create_pool) if the database is unreachable."""
     global db_pool
     if db_pool is None:
         db_pool = create_pool()
-    if db_pool:
-        return db_pool.getconn()
-    return None
+    return db_pool.getconn()
 
 def release_connection(conn):
     if db_pool and conn:
@@ -160,9 +160,12 @@ def migrate_schema(conn):
             cursor.close()
 
 def init_db():
-    conn = get_connection()
-    if not conn:
-        return
+    """Initialize the database schema. Raises RuntimeError if the DB connection pool cannot be created."""
+    try:
+        conn = get_connection()
+    except RuntimeError:
+        logger.exception("Cannot initialize database: connection pool unavailable")
+        raise
     try:
         migrate_schema(conn)
         with conn.cursor() as cursor:

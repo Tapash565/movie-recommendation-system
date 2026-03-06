@@ -88,47 +88,50 @@ async def delete_my_account(request: Request, user=Depends(get_current_user)):
     Delete the current user's account.
 
     Order of operations (critical for data safety):
-    1. Delete Firebase authentication user FIRST
-    2. Delete all user data from the database (bookmarks, ratings)
+    1. Delete all user data from the database (bookmarks, ratings)
+    2. Delete Firebase authentication user
 
-    If Firebase deletion fails, database data is preserved to prevent data loss.
+    If the database deletion fails, the Firebase account is preserved.
+    If Firebase deletion fails after DB data is removed, the failure is logged
+    critically for manual/automated cleanup — the user's auth token will expire naturally.
     """
     firebase_uid = user["uid"]
-    email = user.get("email", "Unknown")
     redacted_uid = _redact_uid(firebase_uid)
 
-    logger.warning(f"User {redacted_uid} ({email}) is requesting account deletion.")
+    logger.warning(f"User {redacted_uid} is requesting account deletion.")
 
-    # Step 1: Delete Firebase Auth user FIRST (critical - if this fails, we preserve DB data)
-    try:
-        delete_firebase_user(firebase_uid)
-    except Exception as e:
-        logger.exception(f"Failed to delete Firebase user {redacted_uid}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete authentication account. Please try again."
-        ) from e
-
-    # Step 2: Delete all user data from PostgreSQL (now safe to do)
+    # Step 1: Delete all user data from PostgreSQL first (Firebase preserved if this fails)
     try:
         db_deleted = services.delete_user_data(firebase_uid)
         if not db_deleted:
-            # Firebase user is already deleted - log for manual cleanup
-            # Data loss but authentication is gone (most important security concern)
-            logger.error(f"Firebase user deleted but database cleanup failed for {redacted_uid}")
-            # Return error to user so they know to contact support
+            logger.error(f"Database cleanup returned False for {redacted_uid}; aborting account deletion.")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Account deleted but some data cleanup failed. Please contact support."
+                detail="Failed to delete user data. Please try again or contact support."
             )
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Database cleanup failed for {redacted_uid}: {e}")
+        logger.exception(f"Database cleanup failed for {redacted_uid}:")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user data. Please contact support."
         ) from e
+
+    # Step 2: Delete Firebase Auth user (DB data already removed)
+    try:
+        delete_firebase_user(firebase_uid)
+    except Exception:
+        # DB data is gone; log critically so manual/automated cleanup can remove the orphaned
+        # Firebase Auth account.
+        logger.critical(
+            f"Firebase account deletion failed for {redacted_uid} after successful DB cleanup. "
+            "Manual removal of the Firebase Auth user is required."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Account data deleted but authentication cleanup failed. Please contact support."
+        )
 
     logger.info(f"Successfully deleted account for user {redacted_uid}")
     return None
