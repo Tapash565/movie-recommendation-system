@@ -18,6 +18,7 @@ export default function ForgotPasswordPage() {
     setStatus({ type: "idle", msg: "" });
     setLoading(true);
     try {
+      if (!auth) throw new Error("Auth is not initialized");
       await sendPasswordResetEmail(auth, email.trim());
       setStatus({
         type: "ok",
@@ -48,7 +49,7 @@ export default function ForgotPasswordPage() {
         className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#1e293b]/80 backdrop-blur-xl p-8 shadow-2xl"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-400 via-purple-500 to-pink-500">
             Reset Password
           </h1>
           <p className="text-sm text-gray-400 mt-2">
@@ -68,7 +69,7 @@ export default function ForgotPasswordPage() {
 
         <button
           disabled={loading}
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 font-semibold text-white hover:from-purple-500 hover:to-pink-500 disabled:opacity-60 transition-all shadow-lg hover:shadow-purple-500/25"
+          className="mt-6 w-full rounded-xl bg-linear-to-r from-purple-600 to-pink-600 px-4 py-3 font-semibold text-white hover:from-purple-500 hover:to-pink-500 disabled:opacity-60 transition-all shadow-lg hover:shadow-purple-500/25"
           type="submit"
         >
           {loading ? "Sending..." : "Send reset link"}
@@ -76,9 +77,8 @@ export default function ForgotPasswordPage() {
 
         {status.type !== "idle" && (
           <div
-            className={`mt-4 text-sm text-center ${
-              status.type === "ok" ? "text-green-400" : "text-red-400"
-            }`}
+            className={`mt-4 text-sm text-center ${status.type === "ok" ? "text-green-400" : "text-red-400"
+              }`}
           >
             {status.msg}
           </div>

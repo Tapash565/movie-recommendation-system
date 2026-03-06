@@ -5,15 +5,19 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/code/app
-    # Environment variables injected at runtime from .env file
-    # This keeps secrets out of the image layers
-    env_file:
-      - ./backend/.env
-    # Alternatively, you can use the 'environment:' key:
-    # environment:
-    #   - DATABASE_URL=${DATABASE_URL}
-    #   - SECRET_KEY=${SECRET_KEY}
-    #   - HUGGINGFACEHUB_API_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_HOST=postgres
+      - REDIS_URL=redis://redis:6379/0
+    # Environment variables are loaded from:
+    # - .env.development (default when running `docker-compose up`)
+    # - .env.staging (with `docker-compose -f docker-compose.yml -f docker-compose.staging.yml up`)
+    # - .env.production (with `docker-compose -f docker-compose.yml -f docker-compose.production.yml up`)
+    # Override with docker-compose.override.yml or specify with -f flag
 
   frontend:
     build: ./frontend
@@ -21,3 +25,29 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

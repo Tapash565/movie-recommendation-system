@@ -25,6 +25,7 @@ export default function ProfilePage() {
     setError("");
 
     try {
+      if (!auth) throw new Error("Auth is not initialized");
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error("Not authenticated");
@@ -55,7 +56,9 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    if (auth) {
+      await signOut(auth);
+    }
     router.push("/login");
   };
 
@@ -81,7 +84,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 mb-8">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-400 via-purple-500 to-pink-500 mb-8">
           Profile
         </h1>
 
@@ -90,7 +93,7 @@ export default function ProfilePage() {
           <h2 className="text-xl font-semibold text-white mb-4">Account Information</h2>
           <div className="space-y-3">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-12 h-12 rounded-full bg-linear-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl">
                 {user.email?.charAt(0).toUpperCase() || "U"}
               </div>
               <div>

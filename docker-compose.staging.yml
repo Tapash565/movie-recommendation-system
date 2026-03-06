@@ -1,0 +1,10 @@
+services:
+  backend:
+    env_file:
+      - ./backend/.env.staging
+    environment:
+      - ENVIRONMENT=staging
+
+  frontend:
+    environment:
+      - NODE_ENV=staging

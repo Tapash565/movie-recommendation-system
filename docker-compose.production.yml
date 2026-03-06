@@ -1,0 +1,25 @@
+services:
+  backend:
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - ENVIRONMENT=production
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    volumes:
+      - ./backend/firebase-adminsdk.json:/code/firebase-adminsdk.json:ro
+
+  frontend:
+    env_file:
+      - ./frontend/.env.production
+    environment:
+      - NODE_ENV=production
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning

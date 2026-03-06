@@ -1,0 +1,18 @@
+services:
+  backend:
+    env_file:
+      - ./backend/.env.development
+    environment:
+      - ENVIRONMENT=development
+      - DB_HOST=postgres
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - REDIS_URL=redis://redis:6379/0
+      # Clear Firebase service account path for emulator mode
+      - FIREBASE_SERVICE_ACCOUNT_PATH=
+      - GOOGLE_CLOUD_PROJECT=movie-recommendation-dev
+      - FIRESTORE_EMULATOR_HOST=localhost:8080
+      - FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+
+  frontend:
+    environment:
+      - NODE_ENV=development

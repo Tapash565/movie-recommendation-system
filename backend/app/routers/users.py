@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
 from ..schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest
 
 from .. import services
 from .. import database as db
 from ..dependencies import get_df, get_current_user
 from ..rate_limit import limiter
-from fastapi import Request
 from ..logger import get_logger
 from ..services.firebase_service import delete_firebase_user
 
@@ -14,6 +13,7 @@ from ..services.firebase_service import delete_firebase_user
 logger = get_logger("users")
 
 router = APIRouter()
+
 
 @router.get("/library")
 def get_library(
@@ -41,7 +41,9 @@ def get_library(
 
     return services.get_user_library(firebase_uid, email, df, page, page_size)
 
+
 # --- API Endpoints ---
+
 
 @router.post("/bookmark")
 @limiter.limit("10/minute")
@@ -52,13 +54,16 @@ async def add_bookmark(request: Request, data: BookmarkRequest, user=Depends(get
     success = services.add_bookmark(firebase_uid, data.movie_id, data.movie_title, data.status)
     return {"success": success}
 
+
 @router.post("/remove_bookmark")
-async def remove_bookmark(data: RemoveBookmarkRequest, user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def remove_bookmark(request: Request, data: RemoveBookmarkRequest, user=Depends(get_current_user)):
     """API endpoint to remove a movie from the user's library."""
     firebase_uid = user["uid"]
     logger.info(f"User UID: {firebase_uid} removing bookmark for movie ID: {data.movie_id}")
     result = services.remove_bookmark(firebase_uid, data.movie_id)
     return {"success": result}
+
 
 @router.post("/rate")
 @limiter.limit("10/minute")
@@ -69,37 +74,40 @@ async def rate_movie(request: Request, data: RatingRequest, user=Depends(get_cur
     success = services.add_rating(firebase_uid, data.movie_id, data.movie_title, data.rating)
     return {"success": success}
 
+
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_my_account(user=Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def delete_my_account(request: Request, user=Depends(get_current_user)):
     """
     Delete the current user's account.
-    This will:
-    1. Delete all user data from the database (bookmarks, ratings)
-    2. Delete the Firebase authentication user
+
+    Order of operations (critical for data safety):
+    1. Delete Firebase authentication user FIRST
+    2. Delete all user data from the database (bookmarks, ratings)
+
+    If Firebase deletion fails, database data is preserved to prevent data loss.
     """
     firebase_uid = user["uid"]
     email = user.get("email", "Unknown")
 
     logger.warning(f"User UID: {firebase_uid} ({email}) is requesting account deletion.")
 
-    # Step 1: Delete all user data from PostgreSQL
-    db_deleted = services.delete_user_data(firebase_uid)
-    if not db_deleted:
-        logger.error(f"Failed to delete database data for user {firebase_uid}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete user data. Please try again."
-        )
-
-    # Step 2: Delete the Firebase Auth user
+    # Step 1: Delete Firebase Auth user FIRST (critical - if this fails, we preserve DB data)
     try:
         delete_firebase_user(firebase_uid)
     except Exception as e:
-        # Log the error but don't block - database data is already deleted
-        # The user won't be able to log in anyway
-        logger.exception(f"Failed to delete Firebase user {firebase_uid}: {e}")
-        # We could raise an exception here, but the user data is already deleted
-        # and they won't be able to log in anyway
+        logger.error(f"Failed to delete Firebase user {firebase_uid}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete authentication account. Please try again."
+        )
+
+    # Step 2: Delete all user data from PostgreSQL (now safe to do)
+    db_deleted = services.delete_user_data(firebase_uid)
+    if not db_deleted:
+        # Firebase user is already deleted - log for manual cleanup
+        # Data loss but authentication is gone (most important security concern)
+        logger.error(f"Firebase user deleted but database cleanup failed for {firebase_uid}")
 
     logger.info(f"Successfully deleted account for user {firebase_uid}")
     return None
