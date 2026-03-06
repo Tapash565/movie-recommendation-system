@@ -91,6 +91,8 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
             except (ValueError, TypeError) as e:
                 logger.warning(f"Failed to parse release date '{details.get('release_date')}': {e}")
                 details['year'] = 'N/A'
+        elif 'year' not in details:
+            details['year'] = 'N/A'
 
         details['poster_url'] = get_poster_url(details.get('poster_path'))
         return sanitize_for_json(details)

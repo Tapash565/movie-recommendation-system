@@ -1,42 +1,47 @@
-import os
 from psycopg2 import pool
-from dotenv import load_dotenv
+
+from .config import get_settings
 from .logger import get_logger
 
 # Initialize logger for database
 logger = get_logger("database")
 
-load_dotenv()
+settings = get_settings()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = settings.DATABASE_URL
 
-# Use a threaded connection pool for better performance and safety in multi-threaded environments
+# Module-level pool (initialized lazily or via init_db())
+db_pool = None
+
+
 def create_pool():
     try:
         # Minimum 1, Maximum 10 connections
         # ThreadedConnectionPool is safer for uvicorn even in async environments
         if DATABASE_URL and "@" in DATABASE_URL:
             return pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
-        
+
         # Fallback to individual parameters
         return pool.ThreadedConnectionPool(
             1, 10,
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT")
+            database=settings.DB_NAME,
+            user=settings.DB_USER,
+            password=settings.DB_PASSWORD,
+            host=settings.DB_HOST,
+            port=settings.DB_PORT
         )
     except Exception as e:
         logger.error(f"Error creating connection pool: {e}")
-        return None
+        raise RuntimeError(f"Failed to create database connection pool: {e}") from e
 
-db_pool = create_pool()
 
 def get_connection():
-    if db_pool:
-        return db_pool.getconn()
-    return None
+    """Return a connection from the pool, creating the pool on first call.
+    Raises RuntimeError (from create_pool) if the database is unreachable."""
+    global db_pool
+    if db_pool is None:
+        db_pool = create_pool()
+    return db_pool.getconn()
 
 def release_connection(conn):
     if db_pool and conn:
@@ -52,7 +57,6 @@ def check_db_health():
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         cursor.fetchone()
-        cursor.close()
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
@@ -89,7 +93,7 @@ def migrate_schema(conn):
                 FROM users u
                 WHERE b.user_id = u.id
             """)
-            
+
             cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NOT NULL")
             populated = cursor.fetchone()[0]
             if populated == 0:
@@ -98,13 +102,13 @@ def migrate_schema(conn):
                 if total > 0:
                     logger.error("Migration aborted: Bookmarks exist but none were mapped to a Firebase UID. Joining with 'users' failed.")
                     raise RuntimeError("Bookmark migration backfill failed: no matches found")
-            
+
             cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE firebase_uid IS NULL")
             orphans = cursor.fetchone()[0]
             if orphans > 0:
                 logger.warning(f"Found {orphans} orphaned bookmarks. Removing data with no user mapping.")
                 cursor.execute("DELETE FROM bookmarks WHERE firebase_uid IS NULL")
-            
+
             cursor.execute("ALTER TABLE bookmarks ALTER COLUMN firebase_uid SET NOT NULL")
             cursor.execute("ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS bookmarks_user_id_movie_id_key")
             cursor.execute("ALTER TABLE bookmarks ADD CONSTRAINT bookmarks_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
@@ -125,7 +129,7 @@ def migrate_schema(conn):
                 FROM users u
                 WHERE r.user_id = u.id
             """)
-            
+
             cursor.execute("SELECT COUNT(*) FROM ratings WHERE firebase_uid IS NOT NULL")
             populated = cursor.fetchone()[0]
             if populated == 0:
@@ -140,7 +144,7 @@ def migrate_schema(conn):
             if orphans > 0:
                 logger.warning(f"Found {orphans} orphaned ratings. Removing data with no user mapping.")
                 cursor.execute("DELETE FROM ratings WHERE firebase_uid IS NULL")
-            
+
             cursor.execute("ALTER TABLE ratings ALTER COLUMN firebase_uid SET NOT NULL")
             cursor.execute("ALTER TABLE ratings DROP CONSTRAINT IF EXISTS ratings_user_id_movie_id_key")
             cursor.execute("ALTER TABLE ratings ADD CONSTRAINT ratings_firebase_uid_movie_id_key UNIQUE(firebase_uid, movie_id)")
@@ -156,9 +160,12 @@ def migrate_schema(conn):
             cursor.close()
 
 def init_db():
-    conn = get_connection()
-    if not conn:
-        return
+    """Initialize the database schema. Raises RuntimeError if the DB connection pool cannot be created."""
+    try:
+        conn = get_connection()
+    except RuntimeError:
+        logger.exception("Cannot initialize database: connection pool unavailable")
+        raise
     try:
         migrate_schema(conn)
         with conn.cursor() as cursor:
@@ -173,7 +180,7 @@ def init_db():
                 UNIQUE(firebase_uid, movie_id)
             )
             """)
-            
+
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS ratings (
                 id SERIAL PRIMARY KEY,

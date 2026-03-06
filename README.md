@@ -1,150 +1,251 @@
 # Movie Recommendation System
 
-A modern, full-stack movie recommendation system built with **FastAPI** (Backend) and **Next.js** (Frontend). It features personalized recommendations using FAISS, a robust search engine, and a premium "Cyberpunk/Neon" UI.
+A full-stack movie recommendation application powered by AI. The system uses FastAPI for the backend, Next.js for the frontend, PostgreSQL for data storage, and FAISS vector search with LangChain for intelligent movie recommendations.
 
-## 🏗 Architecture
+## Features
 
-The project is structured as a monorepo with separate services for the frontend and backend:
+- **AI-Powered Recommendations**: Semantic similarity search using FAISS vector database and LangChain with HuggingFace embeddings
+- **Personalized Discovery**: Recommends movies based on user's watch history and ratings
+- **User Library Management**: Save movies to watch later, mark as watched, and rate movies
+- **Advanced Search**: Fuzzy matching search across movie titles and keywords
+- **Firebase Authentication**: Secure user authentication via Firebase
+- **Responsive UI**: Modern Next.js interface with smooth animations
 
-```bash
-movie_recommendation_system_deployment/
-│
-├── backend/                 # FastAPI (Python 3.11)
-│   ├── app/                 # Application Code
-│   ├── data/                # Movie Data & FAISS Index
-│   └── Dockerfile           # Production Dockerfile
-│
-├── frontend/                # Next.js 15 (React 19)
-│   ├── src/                 # Components, Pages, & Lib
-│   └── Dockerfile           # Standalone Production Build
-│
-├── .github/workflows/       # CI/CD Pipelines
-│   ├── backend-ci.yml       # Backend Validation
-│   └── frontend-ci.yml      # Frontend Validation
-│
-└── docker-compose.yml       # Local Development Orchestration
+## Tech Stack
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **PostgreSQL** - Relational database for user data
+- **LangChain** - LLM framework for AI components
+- **FAISS** - Vector similarity search
+- **HuggingFace** - Sentence transformer embeddings
+- **Firebase Admin SDK** - Server-side authentication
+- **SlowAPI** - Rate limiting
+
+### Frontend
+- **Next.js 16** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Tailwind CSS 4** - Styling
+- **Framer Motion** - Animations
+- **Firebase Client SDK** - Client-side authentication
+- **Axios** - HTTP client
+
+## Project Structure
+
+```text
+movie-recommendation-system/
+├── backend/
+│   ├── app/
+│   │   ├── database.py       # PostgreSQL connection pool
+│   │   ├── dependencies.py  # FastAPI dependencies (auth, data)
+│   │   ├── logger.py         # Logging configuration
+│   │   ├── main.py           # FastAPI application entry point
+│   │   ├── rate_limit.py     # Rate limiting configuration
+│   │   ├── repositories/
+│   │   │   └── user_repository.py  # Database operations
+│   │   ├── routers/
+│   │   │   ├── auth.py       # Authentication endpoints
+│   │   │   ├── movies.py     # Movie search & details
+│   │   │   ├── recommendations.py  # Personalized recommendations
+│   │   │   └── users.py      # User library management
+│   │   ├── schemas.py        # Pydantic models
+│   │   └── services/
+│   │       ├── firebase_service.py   # Firebase initialization
+│   │       ├── movie_service.py      # Movie & recommendation logic
+│   │       └── user_service.py       # User data operations
+│   ├── data/
+│   │   ├── movie_list.pkl          # Movie dataset
+│   │   └── movie_recommendation_faiss/  # FAISS index
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── discover/page.tsx    # Personalized recommendations
+│   │   │   ├── library/page.tsx     # User's saved movies
+│   │   │   ├── login/page.tsx       # Login page
+│   │   │   ├── movie/[id]/page.tsx  # Movie details
+│   │   │   ├── search/page.tsx      # Search page
+│   │   │   ├── signup/page.tsx       # Signup page
+│   │   │   ├── layout.tsx           # Root layout
+│   │   │   └── page.tsx             # Home page
+│   │   ├── components/              # Reusable UI components
+│   │   └── lib/
+│   │       ├── api.ts              # Axios configuration
+│   │       ├── auth.ts             # Authentication utilities
+│   │       ├── firebase.ts         # Firebase client setup
+│   │       └── utils.ts            # Helper functions
+│   ├── package.json
+│   └── next.config.ts
+└── docker-compose.yml               # Docker orchestration
 ```
 
-## 🚀 Getting Started
+## API Endpoints
+
+### Movies
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/movies/trending` | Get random trending movies |
+| GET | `/api/movies/search` | Search movies with pagination |
+| GET | `/api/movies/{movie_id}` | Get movie details with recommendations |
+
+### Recommendations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/discover` | Get personalized recommendations (requires auth) |
+
+### Users
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/library` | Get user's movie library |
+| POST | `/api/bookmark` | Add/update movie bookmark |
+| POST | `/api/remove_bookmark` | Remove movie bookmark |
+| POST | `/api/rate` | Rate a movie |
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/auth/me` | Get current user info |
+
+### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Basic health check |
+| GET | `/api/health` | Deep health check (includes DB & data) |
+
+## Getting Started
 
 ### Prerequisites
-- **Docker Desktop** (Recommended)
-- **Node.js 20+** (For local frontend dev)
-- **Python 3.11+** (For local backend dev)
 
-### 1. Environment Setup
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL database
+- Firebase project with Authentication enabled
 
-Copy the example environment files and fill in your credentials:
+### Backend Setup
 
-**Backend:**
-```bash
-cp backend/.env.example backend/.env
-```
-*Required: `DATABASE_URL`, `SECRET_KEY`, `HUGGINGFACEHUB_API_TOKEN`*
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-**Frontend:**
-```bash
-cp frontend/.env.example frontend/.env
-```
-*Required: `NEXT_PUBLIC_API_URL=http://localhost:8000/api`*
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-> **🔒 Security Note:** Environment variables are injected at **runtime** and are never baked into Docker images. The `.env` files are excluded from version control and should never be committed.
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
----
+4. Create a `.env.development` file (copy from `.env.example`):
+   ```bash
+   cp .env.example .env.development
+   ```
 
-### 2. Run with Docker Compose (Recommended)
+5. Configure the following environment variables in `.env.development`:
+   ```env
+   DATABASE_URL=
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=postgres
+   DB_USER=postgres
+   DB_PASSWORD=your_password
+   FIREBASE_SERVICE_ACCOUNT_PATH=path/to/firebase-adminsdk.json
+   HUGGINGFACEHUB_API_TOKEN=your_huggingface_token
+   CORS_ORIGINS=http://localhost:3000
+   ```
 
-The easiest way to run the full stack is via Docker Compose:
+6. Run the backend server:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+   The API will be available at `http://localhost:8000`. API documentation is at `/api/docs`.
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env.local` file with the following variables:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
+
+   The Firebase client is already configured in `frontend/src/lib/firebase.ts` to read from these environment variables.
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+   The app will be available at `http://localhost:3000`.
+
+### Docker Setup
+
+You can also run the application using Docker Compose:
 
 ```bash
 docker-compose up --build
 ```
 
-- **Frontend:** [http://localhost:3000](http://localhost:3000)
-- **Backend API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+This will start both the backend (port 8000) and frontend (port 3000).
 
-**Environment Variable Injection:**
-Docker Compose automatically loads environment variables from `backend/.env` via the `env_file` directive. Secrets are never copied into image layers.
+## Recommendation Algorithm
 
-**Alternative methods for production:**
-```bash
-# Method 1: Direct environment variables
-docker run -e DATABASE_URL="postgresql://..." -e SECRET_KEY="..." -p 8000:8000 backend
+The system uses a hybrid recommendation approach:
 
-# Method 2: Environment file
-docker run --env-file backend/.env -p 8000:8000 backend
+1. **Content-Based Filtering**: Uses FAISS vector store with sentence-transformer embeddings (`all-MiniLM-L6-v2`) to find semantically similar movies based on titles and metadata
+2. **Personalization**: Analyzes user's library (watched movies, highly-rated movies 4+ stars) to generate personalized recommendations
+3. **Scoring**: Recommends movies that appear frequently in similar movie searches, weighted by their average rating
 
-# Method 3: Docker Compose environment key
-# See docker-compose.yml for the environment: configuration example
-```
+## Security
 
----
+- **Authentication**: Firebase JWT tokens for API authentication
+- **Rate Limiting**: Configurable rate limits per endpoint using SlowAPI
+- **Security Headers**: CSP, X-Frame-Options, X-Content-Type-Options, HSTS
+- **CORS**: Configurable allowed origins
 
-### 3. Run Locally (Manual)
+## Development
 
-If you prefer running services individually without Docker:
+### Running Tests
 
-**Backend (Terminal 1):**
+Backend tests:
 ```bash
 cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+pytest
 ```
 
-**Frontend (Terminal 2):**
+### Linting
+
+Frontend:
 ```bash
 cd frontend
-npm install
-npm run dev
+npm run lint
 ```
 
-## 🛠 Deployment
+## License
 
-### Backend (Render)
-- **Repo:** Connect this repository.
-- **Root Directory:** `backend`
-- **Build Command:** `pip install -r requirements.txt`
-- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port 10000`
-- **Environment:** Set `PYTHON_VERSION` to `3.11.0`.
-- **🔐 Environment Variables:** Configure via Render's dashboard (never commit to repo):
-  - `DATABASE_URL` - Your database connection string
-  - `SECRET_KEY` - JWT secret key for authentication
-  - `HUGGINGFACEHUB_API_TOKEN` - HuggingFace API token
-
-### Frontend (Vercel)
-- **Repo:** Connect this repository.
-- **Root Directory:** `frontend`
-- **Framework Preset:** Next.js
-- **🔐 Environment Variables:** Configure via Vercel dashboard:
-  - `NEXT_PUBLIC_API_URL` - Your production backend URL (e.g., `https://your-api.render.com/api`)
-
-### Other Production Platforms
-
-**Kubernetes:**
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: backend-secrets
-type: Opaque
-data:
-  DATABASE_URL: <base64-encoded>
-  SECRET_KEY: <base64-encoded>
-```
-
-**AWS ECS/Fargate:**
-Use AWS Secrets Manager or Parameter Store, then reference in task definitions.
-
-**Docker Swarm:**
-```bash
-docker secret create db_url /path/to/db_url.txt
-docker service create --secret db_url backend
-```
-
-## 🧪 CI/CD
-
-GitHub Actions automatically validate pull requests:
-- **Backend CI:** Linting & Docker Build test.
-- **Frontend CI:** Build check & Docker Standalone conversion test.
+MIT License

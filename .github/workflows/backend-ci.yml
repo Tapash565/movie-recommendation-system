@@ -11,6 +11,7 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'pull_request' && 'development' || 'production' }}
 
     defaults:
       run:
@@ -30,6 +31,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Load environment
+        run: |
+          cp .env.example .env
+          sed -i 's/^ENVIRONMENT=.*/ENVIRONMENT=test/' .env
 
       - name: Docker build
         run: docker build -t movie-recommender-backend .
