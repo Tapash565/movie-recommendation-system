@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
+import hashlib
 from ..schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest
 
 from .. import services
-from .. import database as db
 from ..dependencies import get_df, get_current_user
 from ..rate_limit import limiter
 from ..logger import get_logger
@@ -15,9 +15,15 @@ logger = get_logger("users")
 router = APIRouter()
 
 
+def _redact_uid(uid: str) -> str:
+    """Create a short hash of UID for logging purposes (privacy-friendly)."""
+    return hashlib.sha256(uid.encode()).hexdigest()[:8]
+
+
 @router.get("/library")
 @limiter.limit("20/minute")
 def get_library(
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(12, ge=1, le=50),
     user=Depends(get_current_user),
@@ -27,7 +33,7 @@ def get_library(
     firebase_uid = user["uid"]
     email = user.get("email", "User")
 
-    logger.info(f"User UID: {firebase_uid} is viewing their library (Page: {page}).")
+    logger.info(f"User {_redact_uid(firebase_uid)} is viewing their library (Page: {page}).")
 
     if df.empty:
         logger.error("Movie data not available")
@@ -50,7 +56,7 @@ def get_library(
 async def add_bookmark(request: Request, data: BookmarkRequest, user=Depends(get_current_user)):
     """API endpoint to add a movie to the user's library."""
     firebase_uid = user["uid"]
-    logger.info(f"User UID: {firebase_uid} setting bookmark for '{data.movie_title}' (ID: {data.movie_id}) to {data.status}")
+    logger.info(f"User {_redact_uid(firebase_uid)} setting bookmark for '{data.movie_title}' (ID: {data.movie_id}) to {data.status}")
     success = services.add_bookmark(firebase_uid, data.movie_id, data.movie_title, data.status)
     return {"success": success}
 
@@ -60,7 +66,7 @@ async def add_bookmark(request: Request, data: BookmarkRequest, user=Depends(get
 async def remove_bookmark(request: Request, data: RemoveBookmarkRequest, user=Depends(get_current_user)):
     """API endpoint to remove a movie from the user's library."""
     firebase_uid = user["uid"]
-    logger.info(f"User UID: {firebase_uid} removing bookmark for movie ID: {data.movie_id}")
+    logger.info(f"User {_redact_uid(firebase_uid)} removing bookmark for movie ID: {data.movie_id}")
     result = services.remove_bookmark(firebase_uid, data.movie_id)
     return {"success": result}
 
@@ -70,7 +76,7 @@ async def remove_bookmark(request: Request, data: RemoveBookmarkRequest, user=De
 async def rate_movie(request: Request, data: RatingRequest, user=Depends(get_current_user)):
     """API endpoint to rate a movie."""
     firebase_uid = user["uid"]
-    logger.info(f"User UID: {firebase_uid} rated movie '{data.movie_title}' (ID: {data.movie_id}) as {data.rating}")
+    logger.info(f"User {_redact_uid(firebase_uid)} rated movie '{data.movie_title}' (ID: {data.movie_id}) as {data.rating}")
     success = services.add_rating(firebase_uid, data.movie_id, data.movie_title, data.rating)
     return {"success": success}
 
@@ -89,14 +95,15 @@ async def delete_my_account(request: Request, user=Depends(get_current_user)):
     """
     firebase_uid = user["uid"]
     email = user.get("email", "Unknown")
+    redacted_uid = _redact_uid(firebase_uid)
 
-    logger.warning(f"User UID: {firebase_uid} ({email}) is requesting account deletion.")
+    logger.warning(f"User {redacted_uid} ({email}) is requesting account deletion.")
 
     # Step 1: Delete Firebase Auth user FIRST (critical - if this fails, we preserve DB data)
     try:
         delete_firebase_user(firebase_uid)
     except Exception as e:
-        logger.exception(f"Failed to delete Firebase user {firebase_uid}: {e}")
+        logger.exception(f"Failed to delete Firebase user {redacted_uid}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete authentication account. Please try again."
@@ -108,14 +115,20 @@ async def delete_my_account(request: Request, user=Depends(get_current_user)):
         if not db_deleted:
             # Firebase user is already deleted - log for manual cleanup
             # Data loss but authentication is gone (most important security concern)
-            logger.error(f"Firebase user deleted but database cleanup failed for {firebase_uid}")
-            # Could emit metrics/alert here
+            logger.error(f"Firebase user deleted but database cleanup failed for {redacted_uid}")
+            # Return error to user so they know to contact support
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Account deleted but some data cleanup failed. Please contact support."
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.exception(f"Database cleanup failed for {firebase_uid}: {e}")
+        logger.exception(f"Database cleanup failed for {redacted_uid}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user data. Please contact support."
         ) from e
 
-    logger.info(f"Successfully deleted account for user {firebase_uid}")
+    logger.info(f"Successfully deleted account for user {redacted_uid}")
     return None

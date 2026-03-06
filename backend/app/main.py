@@ -81,7 +81,10 @@ async def extract_firebase_uid_for_rate_limiting(request: Request, call_next):
         if token:
             try:
                 # Verify token and extract UID (lightweight, just decode)
-                decoded = firebase_auth.verify_id_token(token, check_revoked=False)
+                # Run in thread to avoid blocking the event loop
+                decoded = await asyncio.to_thread(
+                    firebase_auth.verify_id_token, token, check_revoked=False
+                )
                 request.state.firebase_uid = decoded.get("uid")
             except Exception as err:
                 # Token invalid or expired - rate limit by IP only

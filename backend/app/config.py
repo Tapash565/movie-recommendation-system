@@ -1,6 +1,11 @@
 import os
+from pathlib import Path
 from functools import lru_cache
 from pydantic_settings import BaseSettings
+
+
+# Get the backend directory for absolute path resolution
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -33,6 +38,7 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = "INFO"
+    LOG_FILE: str = "app.log"
 
     @property
     def is_production(self) -> bool:
@@ -60,11 +66,11 @@ class Settings(BaseSettings):
         """Create settings with custom environment file loading."""
         # Set environment before loading
         os.environ["ENVIRONMENT"] = environment
-        # Load the appropriate .env file
-        env_file = f".env.{environment}"
-        if os.path.exists(env_file):
+        # Load the appropriate .env file using absolute path
+        env_file = BACKEND_DIR / f".env.{environment}"
+        if env_file.exists():
             from dotenv import load_dotenv
-            load_dotenv(env_file)
+            load_dotenv(env_file, override=True)
         return cls()
 
 
@@ -72,16 +78,19 @@ def _load_environment_file():
     """Load the appropriate .env file based on ENVIRONMENT variable."""
     # Get environment from os.getenv to avoid circular import
     env = os.getenv("ENVIRONMENT", "development")
-    env_file = f".env.{env}"
+    env_file = BACKEND_DIR / f".env.{env}"
 
-    if os.path.exists(env_file):
+    if env_file.exists():
         from dotenv import load_dotenv
         load_dotenv(env_file)
         return True
-    elif os.path.exists(".env"):
-        from dotenv import load_dotenv
-        load_dotenv(".env")
-        return True
+    else:
+        # Check for default .env file
+        default_env = BACKEND_DIR / ".env"
+        if default_env.exists():
+            from dotenv import load_dotenv
+            load_dotenv(default_env)
+            return True
     return False
 
 

@@ -18,17 +18,21 @@ export default function ForgotPasswordPage() {
     setStatus({ type: "idle", msg: "" });
     setLoading(true);
     try {
-      if (!auth) throw new Error("Auth is not initialized");
+      if (!auth) {
+        console.error("Auth is not initialized");
+        throw new Error("Authentication service unavailable. Please try again later.");
+      }
       await sendPasswordResetEmail(auth, email.trim());
       setStatus({
         type: "ok",
         msg: "Password reset email sent. Check your inbox (and spam).",
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to send reset email.";
+      // Log the actual error for debugging, but show generic message to user
+      console.error("Password reset failed:", err);
       setStatus({
         type: "err",
-        msg: errorMessage,
+        msg: "Failed to send password reset email. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -78,6 +82,8 @@ export default function ForgotPasswordPage() {
 
         {status.type !== "idle" && (
           <div
+            role={status.type === "ok" ? "status" : "alert"}
+            aria-live={status.type === "ok" ? "polite" : "assertive"}
             className={`mt-4 text-sm text-center ${status.type === "ok" ? "text-green-400" : "text-red-400"
               }`}
           >

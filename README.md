@@ -182,25 +182,21 @@ movie-recommendation-system/
    npm install
    ```
 
-3. Create a `.env.local` file:
+3. Create a `.env.local` file with the following variables:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
    ```
 
-4. Configure Firebase (create `src/lib/firebase.ts` with your Firebase config):
-   ```typescript
-   import { initializeApp } from 'firebase/app';
-   import { getAuth } from 'firebase/auth';
+   The Firebase client is already configured in `frontend/src/lib/firebase.ts` to read from these environment variables.
 
-   const firebaseConfig = {
-     // Your Firebase config here
-   };
-
-   const app = initializeApp(firebaseConfig);
-   export const auth = getAuth(app);
-   ```
-
-5. Run the development server:
+4. Run the development server:
    ```bash
    npm run dev
    ```

@@ -98,16 +98,23 @@ def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float
     return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)
 
 
+def _redact_uid(uid: str) -> str:
+    """Create a short hash of UID for logging purposes (privacy-friendly)."""
+    import hashlib
+    return hashlib.sha256(uid.encode()).hexdigest()[:8]
+
+
 def delete_user_data(firebase_uid: str) -> bool:
     """Delete all user data from the database (bookmarks and ratings) in a single transaction."""
+    redacted_uid = _redact_uid(firebase_uid)
     # Use the transactional repository method if available
     try:
         result = user_repo.delete_user_data_transactional(firebase_uid)
         if result:
-            logger.info(f"Successfully deleted all user data for UID: {firebase_uid}")
+            logger.info(f"Successfully deleted all user data for UID: {redacted_uid}")
         else:
-            logger.error(f"Failed to delete user data for UID: {firebase_uid}")
+            logger.error(f"Failed to delete user data for UID: {redacted_uid}")
         return result
     except Exception:
-        logger.exception(f"Failed to delete user data for UID: {firebase_uid}")
+        logger.exception(f"Failed to delete user data for UID: {redacted_uid}")
         return False

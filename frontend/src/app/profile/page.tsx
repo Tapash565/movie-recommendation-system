@@ -62,6 +62,13 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  // Redirect to login if user is not authenticated (useEffect must be before any early returns)
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [loading, user, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -69,13 +76,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  // Redirect to login if user is not authenticated (useEffect to avoid render-side-effects)
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-    }
-  }, [user, router]);
 
   if (!user) {
     return null;

@@ -10,7 +10,10 @@ settings = get_settings()
 
 DATABASE_URL = settings.DATABASE_URL
 
-# Use a threaded connection pool for better performance and safety in multi-threaded environments
+# Module-level pool (initialized lazily or via init_db())
+db_pool = None
+
+
 def create_pool():
     try:
         # Minimum 1, Maximum 10 connections
@@ -31,9 +34,11 @@ def create_pool():
         logger.error(f"Error creating connection pool: {e}")
         raise RuntimeError(f"Failed to create database connection pool: {e}") from e
 
-db_pool = create_pool()
 
 def get_connection():
+    global db_pool
+    if db_pool is None:
+        db_pool = create_pool()
     if db_pool:
         return db_pool.getconn()
     return None
@@ -52,7 +57,6 @@ def check_db_health():
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         cursor.fetchone()
-        cursor.close()
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
