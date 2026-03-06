@@ -4,6 +4,7 @@ services:
       - ./backend/.env.production
     environment:
       - ENVIRONMENT=production
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/code/firebase-adminsdk.json
     deploy:
       replicas: 1
       resources:
@@ -23,3 +24,14 @@ services:
     image: redis:7-alpine
     restart: always
     command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  redis-data:

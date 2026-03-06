@@ -99,12 +99,15 @@ def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float
 
 
 def delete_user_data(firebase_uid: str) -> bool:
-    """Delete all user data from the database (bookmarks and ratings)."""
+    """Delete all user data from the database (bookmarks and ratings) in a single transaction."""
+    # Use the transactional repository method if available
     try:
-        user_repo.delete_user_bookmarks(firebase_uid)
-        user_repo.delete_user_ratings(firebase_uid)
-        logger.info(f"Successfully deleted all user data for UID: {firebase_uid}")
-        return True
+        result = user_repo.delete_user_data_transactional(firebase_uid)
+        if result:
+            logger.info(f"Successfully deleted all user data for UID: {firebase_uid}")
+        else:
+            logger.error(f"Failed to delete user data for UID: {firebase_uid}")
+        return result
     except Exception:
         logger.exception(f"Failed to delete user data for UID: {firebase_uid}")
         return False

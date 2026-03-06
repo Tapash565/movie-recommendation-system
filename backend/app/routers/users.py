@@ -16,8 +16,8 @@ router = APIRouter()
 
 
 @router.get("/library")
+@limiter.limit("20/minute")
 def get_library(
-    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(12, ge=1, le=50),
     user=Depends(get_current_user),
@@ -96,18 +96,26 @@ async def delete_my_account(request: Request, user=Depends(get_current_user)):
     try:
         delete_firebase_user(firebase_uid)
     except Exception as e:
-        logger.error(f"Failed to delete Firebase user {firebase_uid}: {e}")
+        logger.exception(f"Failed to delete Firebase user {firebase_uid}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete authentication account. Please try again."
-        )
+        ) from e
 
     # Step 2: Delete all user data from PostgreSQL (now safe to do)
-    db_deleted = services.delete_user_data(firebase_uid)
-    if not db_deleted:
-        # Firebase user is already deleted - log for manual cleanup
-        # Data loss but authentication is gone (most important security concern)
-        logger.error(f"Firebase user deleted but database cleanup failed for {firebase_uid}")
+    try:
+        db_deleted = services.delete_user_data(firebase_uid)
+        if not db_deleted:
+            # Firebase user is already deleted - log for manual cleanup
+            # Data loss but authentication is gone (most important security concern)
+            logger.error(f"Firebase user deleted but database cleanup failed for {firebase_uid}")
+            # Could emit metrics/alert here
+    except Exception as e:
+        logger.exception(f"Database cleanup failed for {firebase_uid}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user data. Please contact support."
+        ) from e
 
     logger.info(f"Successfully deleted account for user {firebase_uid}")
     return None

@@ -33,7 +33,7 @@ A full-stack movie recommendation application powered by AI. The system uses Fas
 
 ## Project Structure
 
-```
+```text
 movie-recommendation-system/
 ├── backend/
 │   ├── app/
@@ -83,6 +83,7 @@ movie-recommendation-system/
 ## API Endpoints
 
 ### Movies
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/movies/trending` | Get random trending movies |
@@ -90,11 +91,13 @@ movie-recommendation-system/
 | GET | `/api/movies/{movie_id}` | Get movie details with recommendations |
 
 ### Recommendations
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/discover` | Get personalized recommendations (requires auth) |
 
 ### Users
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/library` | Get user's movie library |
@@ -103,11 +106,13 @@ movie-recommendation-system/
 | POST | `/api/rate` | Rate a movie |
 
 ### Authentication
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/auth/me` | Get current user info |
 
 ### Health
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Basic health check |
@@ -140,14 +145,19 @@ movie-recommendation-system/
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file (copy from `.env.example`):
+4. Create a `.env.development` file (copy from `.env.example`):
    ```bash
-   cp .env.example .env
+   cp .env.example .env.development
    ```
 
-5. Configure the following environment variables:
+5. Configure the following environment variables in `.env.development`:
    ```env
-   DATABASE_URL=postgresql://user:password@host:port/dbname
+   DATABASE_URL=
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=postgres
+   DB_USER=postgres
+   DB_PASSWORD=your_password
    FIREBASE_SERVICE_ACCOUNT_PATH=path/to/firebase-adminsdk.json
    HUGGINGFACEHUB_API_TOKEN=your_huggingface_token
    CORS_ORIGINS=http://localhost:3000

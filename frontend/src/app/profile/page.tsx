@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 export default function ProfilePage() {
@@ -39,7 +39,7 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok && res.status !== 204) {
+      if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt || "Failed to delete account");
       }
@@ -70,8 +70,14 @@ export default function ProfilePage() {
     );
   }
 
+  // Redirect to login if user is not authenticated (useEffect to avoid render-side-effects)
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+    }
+  }, [user, router]);
+
   if (!user) {
-    router.push("/login");
     return null;
   }
 
@@ -112,18 +118,18 @@ export default function ProfilePage() {
         <div className="bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Quick Links</h2>
           <div className="space-y-2">
-            <a
+            <Link
               href="/library"
               className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
             >
               My Library
-            </a>
-            <a
+            </Link>
+            <Link
               href="/discover"
               className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
             >
               Discover Movies
-            </a>
+            </Link>
           </div>
         </div>
 

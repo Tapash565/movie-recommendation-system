@@ -55,17 +55,10 @@ class Settings(BaseSettings):
         """Parse CORS_ORIGINS string into a list."""
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
-    class Config:
-        """Pydantic settings configuration."""
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"
-
     @classmethod
     def settings_custom_init(cls, environment: str):
         """Create settings with custom environment file loading."""
         # Set environment before loading
-        import os
         os.environ["ENVIRONMENT"] = environment
         # Load the appropriate .env file
         env_file = f".env.{environment}"

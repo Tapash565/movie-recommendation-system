@@ -2,7 +2,6 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
-from functools import lru_cache
 
 # Create a custom logger
 logger = logging.getLogger("movie_recommendation")
@@ -20,16 +19,25 @@ def _init_logger():
         from .config import get_settings
         settings = get_settings()
         log_level = settings.LOG_LEVEL.upper()
-    except Exception:
+        # Try to get log file path from settings
+        log_file = getattr(settings, 'LOG_FILE', 'app.log')
+    except (ImportError, AttributeError):
         # Fallback to environment variable
         log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+        log_file = os.getenv("LOG_FILE", "app.log")
 
     logger.setLevel(getattr(logging, log_level, logging.INFO))
 
     # Create handlers
     c_handler = logging.StreamHandler(sys.stdout)
+
+    # Ensure log directory exists
+    log_dir = os.path.dirname(log_file)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
     # Max size 10MB, keep 5 backups
-    f_handler = RotatingFileHandler("app.log", maxBytes=10*1024*1024, backupCount=5)
+    f_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
 
     # Create formatters and add it to handlers
     log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

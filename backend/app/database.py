@@ -29,7 +29,7 @@ def create_pool():
         )
     except Exception as e:
         logger.error(f"Error creating connection pool: {e}")
-        return None
+        raise RuntimeError(f"Failed to create database connection pool: {e}") from e
 
 db_pool = create_pool()
 

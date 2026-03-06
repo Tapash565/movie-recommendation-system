@@ -57,8 +57,9 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <label className="block text-sm text-gray-300 mb-2">Email</label>
+        <label htmlFor="forgot-email" className="block text-sm text-gray-300 mb-2">Email</label>
         <input
+          id="forgot-email"
           className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
           type="email"
           value={email}

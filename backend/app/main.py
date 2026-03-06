@@ -83,9 +83,9 @@ async def extract_firebase_uid_for_rate_limiting(request: Request, call_next):
                 # Verify token and extract UID (lightweight, just decode)
                 decoded = firebase_auth.verify_id_token(token, check_revoked=False)
                 request.state.firebase_uid = decoded.get("uid")
-            except Exception:
+            except Exception as err:
                 # Token invalid or expired - rate limit by IP only
-                pass
+                logger.debug(f"Token verification failed: {err}")
 
     response = await call_next(request)
     return response

@@ -10,8 +10,13 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('Global error:', error);
+    // Forward errors to production error reporting service (e.g., Sentry)
+    // In production: Sentry.captureException(error);
+    // For now, log to console in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Global error:', error);
+    }
+    // In production, you would call: Sentry.captureException(error, { extra: { digest: error.digest } });
   }, [error]);
 
   return (
@@ -43,7 +48,7 @@ export default function GlobalError({
               color: '#94a3b8',
               marginBottom: '1.5rem',
             }}>
-              {error.message || 'An unexpected error occurred'}
+              An unexpected error occurred
             </p>
             <button
               onClick={() => reset()}
