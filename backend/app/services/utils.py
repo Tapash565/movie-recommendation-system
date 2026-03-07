@@ -28,9 +28,10 @@ def get_poster_url(poster_path: str | None) -> str:
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'%3E%3Crect fill='%23374151' width='500' height='750'/%3E%3Ctext fill='%239ca3af' font-family='system-ui' font-size='24' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo%20Poster%3C/text%3E%3C/svg%3E"
 
 def get_backdrop_url(backdrop_path: str | None) -> str | None:
-    if not backdrop_path:
-        return None
-    return f"https://image.tmdb.org/t/p/original{backdrop_path}"
+    """Construct full TMDB backdrop image URL. Returns None for non-string or falsy inputs."""
+    if backdrop_path and isinstance(backdrop_path, str):
+        return f"https://image.tmdb.org/t/p/original{backdrop_path}"
+    return None
 
 def format_number(value: Any) -> str:
     """Format number with commas"""

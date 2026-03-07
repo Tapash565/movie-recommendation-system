@@ -7,6 +7,7 @@ class Movie(BaseModel):
     title: str
     year: str
     poster_url: str
+    backdrop_url: Optional[str] = None
     vote_average: float
     vote_count: int
     popularity: float

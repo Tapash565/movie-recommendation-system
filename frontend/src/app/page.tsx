@@ -13,6 +13,8 @@ interface Movie {
   year: string;
   poster_url: string;
   vote_average: number;
+  overview?: string;
+  backdrop_url?: string;
 }
 
 interface FeaturedMovie extends Movie {
@@ -77,36 +79,22 @@ export default function Home() {
   useEffect(() => {
     Promise.all([
       api.get('/movies/trending'),
-      api.get('/movies/top-rated'),
-      api.get('/movies/popular'),
       api.get('/discover').catch(() => ({ data: [] }))
     ])
-      .then(([trendingRes, topRatedRes, popularRes, recommendedRes]) => {
+      .then(([trendingRes, topRatedRes]) => {
         const trendingData = trendingRes.data || [];
         const topRatedData = topRatedRes.data || [];
-        const popularData = popularRes.data || [];
-        const recommendedData = recommendedRes.data || [];
 
         setTrending(trendingData);
         setTopRated(topRatedData);
-        setPopular(popularData);
-        setRecommended(recommendedData);
 
-        // Priority: trending > highest rated > popular
-        const prioritySource = trendingData.length > 0
-          ? trendingData
-          : topRatedData.length > 0
-            ? topRatedData
-            : popularData;
-
-        if (prioritySource.length > 0) {
-          // Select a high-rated movie from the priority source
-          const sortedByRating = [...prioritySource].sort((a, b) => b.vote_average - a.vote_average);
+        if (trendingData.length > 0) {
+          const sortedByRating = [...trendingData].sort((a, b) => b.vote_average - a.vote_average);
           const featured = sortedByRating[Math.floor(Math.random() * Math.min(5, sortedByRating.length))];
           setFeaturedMovie({
             ...featured,
-            overview: 'Discover amazing movies tailored just for you. Start exploring your next favorite film today.',
-            backdrop_url: featured.poster_url
+            overview: featured.overview || 'Discover amazing movies tailored just for you. Start exploring your next favorite film today.',
+            backdrop_url: featured.backdrop_url || featured.poster_url
           });
         }
       })
@@ -135,9 +123,7 @@ export default function Home() {
 
   // Get all movie IDs to exclude from genre recommendations
   const allMovieIds = useMemo(() => {
-    const ids: number[] = [];
-    [...trending, ...topRated, ...popular, ...recommended].forEach(m => ids.push(m.id));
-    return ids;
+    return [trending, topRated, popular, recommended].flatMap(list => list.map(m => m.id));
   }, [trending, topRated, popular, recommended]);
 
   return (
