@@ -1,6 +1,6 @@
 import math
 import pandas as pd
-from typing import Any
+from typing import Any, Optional
 
 
 def sanitize_for_json(data: Any) -> Any:
@@ -27,6 +27,10 @@ def get_poster_url(poster_path: str | None) -> str:
     # Use inline SVG data URI as fallback (no external dependencies)
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'%3E%3Crect fill='%23374151' width='500' height='750'/%3E%3Ctext fill='%239ca3af' font-family='system-ui' font-size='24' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo%20Poster%3C/text%3E%3C/svg%3E"
 
+def get_backdrop_url(backdrop_path: str | None) -> str | None:
+    if not backdrop_path:
+        return None
+    return f"https://image.tmdb.org/t/p/original{backdrop_path}"
 
 def format_number(value: Any) -> str:
     """Format number with commas"""

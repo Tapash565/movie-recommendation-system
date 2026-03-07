@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo} from 'react';
 import api from '@/lib/api';
 import MovieRow from '@/components/MovieRow';
 import Image from 'next/image';
@@ -207,7 +207,7 @@ export default function Home() {
                     <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
-                    <span className="text-sm sm:text-base">My List</span>
+                    <span className="text-sm sm:text-base">More Info</span>
                   </Link>
                 </div>
               </motion.div>

@@ -9,7 +9,7 @@ from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_core.documents import Document
 from langchain_core.retrievers import RetrieverLike
 from ..logger import get_logger
-from .utils import sanitize_for_json, get_poster_url
+from .utils import sanitize_for_json, get_poster_url, get_backdrop_url
 from datetime import datetime
 from typing import Any
 
@@ -95,6 +95,7 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
             details['year'] = 'N/A'
 
         details['poster_url'] = get_poster_url(details.get('poster_path'))
+        details['backdrop_url'] = get_backdrop_url(details.get('backdrop_path'))
         return sanitize_for_json(details)
     return None
 

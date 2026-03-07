@@ -50,14 +50,61 @@ export default function LibraryPage() {
     const [data, setData] = useState<LibraryData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'watchlist' | 'watched' | 'rated'>('watchlist');
+    const [watchlistPage, setWatchlistPage] = useState(1);
+    const [watchedPage, setWatchedPage] = useState(1);
+    const [ratedPage, setRatedPage] = useState(1);
+
+    const getCurrentPage = (): number => {
+        switch (activeTab) {
+            case 'watchlist':
+                return watchlistPage;
+            case 'watched':
+                return watchedPage;
+            case 'rated':
+                return ratedPage;
+            default:
+                return 1;
+        }
+    };
+
+    const setCurrentPage = (page: number) => {
+        switch (activeTab) {
+            case 'watchlist':
+                setWatchlistPage(page);
+                break;
+            case 'watched':
+                setWatchedPage(page);
+                break;
+            case 'rated':
+                setRatedPage(page);
+                break;
+        }
+    };
+
+    const getTotalItems = (): number => {
+        if (!data) return 0;
+
+        switch (activeTab) {
+            case 'watchlist':
+                return data.pagination.total_to_watch;
+            case 'watched':
+                return data.pagination.total_watched;
+            case 'rated':
+                return data.pagination.total_rated;
+            default:
+                return 0;
+        }
+    };
 
     useEffect(() => {
+        const currentPage = getCurrentPage();
+
         setLoading(true);
-        api.get('/library')
+        api.get(`/library?page=${currentPage}`)
             .then((res) => setData(res.data))
             .catch((err) => console.error(err))
             .finally(() => setLoading(false));
-    }, []);
+    }, [activeTab, watchlistPage, watchedPage, ratedPage]);
 
     const getMovies = (): Movie[] => {
         if (!data) return [];
@@ -77,6 +124,11 @@ export default function LibraryPage() {
             default: return '';
         }
     };
+
+    const currentPage = getCurrentPage();
+    const totalItems = getTotalItems();
+    const pageSize = data?.pagination.page_size ?? 1;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     return (
         <main className="min-h-screen pb-10 pt-16 sm:pt-20 md:pt-24">
@@ -122,7 +174,33 @@ export default function LibraryPage() {
                         ))}
                     </div>
                 ) : getMovies().length > 0 ? (
-                    <MovieRow title={getTitle()} movies={getMovies()} />
+                    <div className="space-y-6">
+                        <MovieRow title={getTitle()} movies={getMovies()} />
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-3 px-4">
+                                <button
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 rounded-full bg-white/10 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/20 transition"
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="text-sm text-gray-300">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+
+                                <button
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-2 rounded-full bg-white/10 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/20 transition"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 ) : (
                     <div className="text-center py-16 sm:py-20 text-gray-500 px-4">
                         No movies in this list yet.

@@ -27,6 +27,10 @@ export default function MovieCard({ movie, showAIMatch = false, priority = false
         setIsLoaded(true);
     }, []);
 
+    const handleImageError = useCallback(() => {
+        setIsLoaded(true);
+    }, []);
+
     return (
         <motion.article
             className="group relative flex-shrink-0 w-[100px] xs:w-[120px] sm:w-[140px] md:w-[160px] lg:w-[180px] xl:w-[200px] cursor-pointer"
@@ -58,6 +62,7 @@ export default function MovieCard({ movie, showAIMatch = false, priority = false
                         loading={priority ? 'eager' : 'lazy'}
                         priority={priority}
                         onLoad={handleImageLoad}
+                        onError={handleImageError}
                     />
 
                     {/* Gradient Overlay */}

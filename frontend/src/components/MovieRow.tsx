@@ -89,15 +89,13 @@ export default function MovieRow({ title, movies, showAIMatch = false }: MovieRo
             scroll('right');
         }
     }, [scroll]);
-
-    if (movies.length === 0) return null;
-
+    
     // Memoize skeleton items
     const skeletonItems = useMemo(() => (
         [...Array(7)].map((_, i) => (
             <div
-                key={`skeleton-${i}`}
-                className="flex-shrink-0 w-[100px] xs:w-[120px] sm:w-[140px] md:w-[160px] lg:w-[180px] xl:w-[200px]"
+            key={`skeleton-${i}`}
+            className="flex-shrink-0 w-[100px] xs:w-[120px] sm:w-[140px] md:w-[160px] lg:w-[180px] xl:w-[200px]"
             >
                 <div className="aspect-[2/3] bg-white/10 rounded-md animate-pulse" />
                 <div className="mt-2 space-y-2 px-1">
@@ -107,6 +105,8 @@ export default function MovieRow({ title, movies, showAIMatch = false }: MovieRo
             </div>
         ))
     ), []);
+
+    if (movies.length === 0) return null;
 
     const rowId = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
@@ -133,17 +133,18 @@ export default function MovieRow({ title, movies, showAIMatch = false }: MovieRo
                 aria-label={`${title} movies, use arrow keys to scroll`}
             >
                 {/* Left Navigation Button */}
-                <button
-                    onClick={() => scroll('left')}
-                    className={`absolute left-0 top-0 bottom-0 z-10 w-10 sm:w-12 bg-black/60 hover:bg-black/80 transition-all duration-300 flex items-center justify-center ${
-                        canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                    }`}
-                    aria-label={`Scroll ${title} left`}
-                >
+                {canScrollLeft && (
+                    <button
+                        onClick={() => scroll('left')}
+                        className="absolute left-0 top-0 bottom-0 z-10 w-10 sm:w-12 bg-black/60 hover:bg-black/80 transition-all duration-300 flex items-center justify-center opacity-100"
+                        aria-label={`Scroll ${title} left`}
+                        type="button"
+                    >
                     <svg className="w-5 sm:w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
+                )}
 
                 {/* Movies Container with scroll snapping */}
                 <div
@@ -165,17 +166,18 @@ export default function MovieRow({ title, movies, showAIMatch = false }: MovieRo
                 </div>
 
                 {/* Right Navigation Button */}
-                <button
-                    onClick={() => scroll('right')}
-                    className={`absolute right-0 top-0 bottom-0 z-10 w-10 sm:w-12 bg-black/60 hover:bg-black/80 transition-all duration-300 flex items-center justify-center ${
-                        canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                    }`}
-                    aria-label={`Scroll ${title} right`}
-                >
+                {canScrollRight && (
+                    <button
+                        onClick={() => scroll('right')}
+                        className="absolute right-0 top-0 bottom-0 z-10 w-10 sm:w-12 bg-black/60 hover:bg-black/80 transition-all duration-300 flex items-center justify-center opacity-100"
+                        aria-label={`Scroll ${title} right`}
+                        type="button"
+                    >
                     <svg className="w-5 sm:w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
+                )}
             </div>
         </section>
     );

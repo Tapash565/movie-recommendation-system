@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import MovieRow from '@/components/MovieRow';
 
+const PAGE_SIZE = 24;
+
 interface Movie {
     id: number;
     title: string;
@@ -26,7 +28,9 @@ function SearchContent() {
     useEffect(() => {
         if (q) {
             setLoading(true);
-            api.get('/movies/search', { params: { q, order_by: orderBy, page } })
+            api.get('/movies/search', { 
+                params: { q, order_by: orderBy, page , page_size: PAGE_SIZE} 
+            })
                 .then((res) => {
                     setMovies(res.data.movies || []);
                     setTotalResults(res.data.total_results || 0);
@@ -101,7 +105,7 @@ function SearchContent() {
                         <MovieRow title="Results" movies={movies} />
 
                         {/* Pagination */}
-                        {totalResults > 20 && (
+                        {totalResults > PAGE_SIZE && (
                             <div className="flex justify-center gap-3 mt-8 sm:mt-10">
                                 {page > 1 && (
                                     <a
@@ -114,7 +118,7 @@ function SearchContent() {
                                 <span className="bg-[#E50914] text-white px-4 py-2 rounded-lg">
                                     Page {page}
                                 </span>
-                                {totalResults > page * 20 && (
+                                {totalResults > page * PAGE_SIZE && (
                                     <a
                                         href={`/search?q=${q}&order_by=${orderBy}&page=${page + 1}`}
                                         className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors"

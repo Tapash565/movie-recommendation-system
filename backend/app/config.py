@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
     CORS_ORIGINS: str = "http://localhost:3000"
+    CORS_ORIGIN_REGEX: str = ""  # e.g., "https://movie-recommendation-.*\.vercel\.app" for Vercel previews
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -60,6 +61,11 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into a list."""
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        """Get CORS origin regex pattern for dynamic origins like Vercel previews."""
+        return self.CORS_ORIGIN_REGEX.strip() or None
 
     @classmethod
     def settings_custom_init(cls, environment: str):
