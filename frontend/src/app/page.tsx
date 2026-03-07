@@ -70,23 +70,20 @@ function GenreBasedRow({ title, genre, excludeIds = [] }: { title: string; genre
 export default function Home() {
   const [featuredMovie, setFeaturedMovie] = useState<FeaturedMovie | null>(null);
   const [trending, setTrending] = useState<Movie[]>([]);
-  const [topRated, setTopRated] = useState<Movie[]>([]);
-  const [popular, setPopular] = useState<Movie[]>([]);
   const [recommended, setRecommended] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showControls, setShowControls] = useState(false);
 
   useEffect(() => {
     Promise.all([
       api.get('/movies/trending'),
       api.get('/discover').catch(() => ({ data: [] }))
     ])
-      .then(([trendingRes, topRatedRes]) => {
+      .then(([trendingRes, discoverRes]) => {
         const trendingData = trendingRes.data || [];
-        const topRatedData = topRatedRes.data || [];
+        const discoverData = discoverRes.data || [];
 
         setTrending(trendingData);
-        setTopRated(topRatedData);
+        setRecommended(discoverData);
 
         if (trendingData.length > 0) {
           const sortedByRating = [...trendingData].sort((a, b) => b.vote_average - a.vote_average);
@@ -123,8 +120,8 @@ export default function Home() {
 
   // Get all movie IDs to exclude from genre recommendations
   const allMovieIds = useMemo(() => {
-    return [trending, topRated, popular, recommended].flatMap(list => list.map(m => m.id));
-  }, [trending, topRated, popular, recommended]);
+    return [trending, recommended].flatMap(list => list.map(m => m.id));
+  }, [trending, recommended]);
 
   return (
     <div className="min-h-screen pb-10">
@@ -146,8 +143,6 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
             className="relative h-[60vh] sm:h-[65vh] md:h-[75vh] lg:h-[80vh] w-full overflow-hidden"
-            onMouseEnter={() => setShowControls(true)}
-            onMouseLeave={() => setShowControls(false)}
           >
             {/* Background Image */}
             <div className="absolute inset-0">
@@ -221,16 +216,6 @@ export default function Home() {
             {/* Genre-based contextual rows */}
             <GenreBasedRow title="Action & Adventure" genre="action" excludeIds={allMovieIds} />
             <GenreBasedRow title="Drama Films" genre="drama" excludeIds={allMovieIds} />
-
-            {/* Top Rated */}
-            {topRated.length > 0 && (
-              <MovieRow title="Top Rated" movies={topRated} />
-            )}
-
-            {/* Popular */}
-            {popular.length > 0 && (
-              <MovieRow title="Popular on MovieMind" movies={popular} />
-            )}
           </div>
         )}
       </div>
