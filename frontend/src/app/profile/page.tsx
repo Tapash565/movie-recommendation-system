@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
+import api from "@/lib/api";
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
@@ -25,27 +26,11 @@ export default function ProfilePage() {
     setError("");
 
     try {
-      if (!auth) throw new Error("Auth is not initialized");
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error("Not authenticated");
-      }
-
-      // Get fresh token
-      const token = await currentUser.getIdToken(true);
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/users/me`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Failed to delete account");
-      }
+      // Use the shared api instance (handles auth token automatically)
+      await api.delete('/me');
 
       // Sign out after successful deletion
-      await signOut(auth);
+      if (auth) await signOut(auth);
       router.push("/signup");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to delete account";
