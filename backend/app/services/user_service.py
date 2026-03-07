@@ -98,6 +98,11 @@ def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float
     return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)
 
 
+def delete_user_data(firebase_uid: str) -> bool:
+    """Delete all user data (bookmarks and ratings) in a single transaction. Returns True on success."""
+    return user_repo.delete_user_data_transactional(firebase_uid)
+
+
 def _redact_uid(uid: str) -> str:
     """Create a short hash of UID for logging purposes (privacy-friendly)."""
     import hashlib
