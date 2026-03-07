@@ -1,0 +1,83 @@
+# Render Blueprint — defines the movie-api web service and its Postgres database.
+#
+# Preview behaviour:
+#   • Service Previews  — controlled by `previewsEnabled: true` below.
+#     Render spins up a temporary copy of movie-api for every PR branch.
+#   • Preview Environments (full isolation with a separate DB copy) must be
+#     enabled from the Render Dashboard: Blueprints → select this blueprint →
+#     "Enable Preview Environments". The Blueprint YAML drives what gets
+#     provisioned; the dashboard toggle switches the feature on.
+#
+# One-time manual steps after first deploy:
+#   1. Upload firebase-adminsdk.json as a Secret File in the Render service
+#      settings → "Secret Files" → mount path: /etc/secrets/firebase-adminsdk.json
+#   2. Set CORS_ORIGINS to your Vercel production URL in the service's
+#      environment settings (or via an Environment Group).
+#   3. Set REDIS_URL, HUGGINGFACEHUB_API_TOKEN, and GOOGLE_CLOUD_PROJECT
+#      in the service's environment settings.
+
+services:
+  - type: web
+    name: movie-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    plan: starter              # use "free" for personal / hobby projects
+    autoDeploy: true
+
+    # Service Previews — creates a preview instance of this service per PR.
+    # Each preview gets its own subdomain: movie-api-pr-<number>.onrender.com
+    previewsEnabled: true
+    previewsExpireAfterDays: 7
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      - key: PORT
+        value: 8000
+
+      # ── CORS ──────────────────────────────────────────────────────────────
+      # Exact origins: set in Render Dashboard (e.g. https://yourapp.vercel.app).
+      # The regex covers every Vercel preview URL automatically.
+      - key: CORS_ORIGINS
+        sync: false            # set in Dashboard — do not hard-code in YAML
+
+      - key: CORS_ORIGIN_REGEX
+        value: "https://.*\\.vercel\\.app"
+
+      # ── Database ──────────────────────────────────────────────────────────
+      # Injected automatically from the database definition below.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: movie-api-db
+          property: connectionString
+
+      # ── Firebase ──────────────────────────────────────────────────────────
+      # Upload the JSON as a Secret File in the Render Dashboard at this path.
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: /etc/secrets/firebase-adminsdk.json
+
+      - key: GOOGLE_CLOUD_PROJECT
+        sync: false            # set in Dashboard
+
+      # ── Redis ─────────────────────────────────────────────────────────────
+      # Render Redis is a paid add-on. For free-tier deployments you can omit
+      # this and the app will use an in-memory rate-limit store instead.
+      - key: REDIS_URL
+        sync: false            # set in Dashboard
+
+      # ── ML / AI ───────────────────────────────────────────────────────────
+      - key: HUGGINGFACEHUB_API_TOKEN
+        sync: false            # set in Dashboard
+
+      # ── Logging ───────────────────────────────────────────────────────────
+      - key: LOG_LEVEL
+        value: INFO
+
+databases:
+  - name: movie-api-db
+    databaseName: movie_recommendation
+    user: movie_api
+    plan: free                 # one free Postgres instance per Render account
