@@ -20,7 +20,6 @@ interface Movie {
 interface FeaturedMovie extends Movie {
   overview: string;
   backdrop_url: string;
-  genres?: string[];
 }
 
 // Skeleton for hero section
@@ -49,6 +48,11 @@ function GenreBasedRow({ title, genre, excludeIds = [] }: { title: string; genre
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const excludeKey = useMemo(
+    () => JSON.stringify([...excludeIds].sort((a, b) => a - b)),
+    [excludeIds]
+  );
+
   useEffect(() => {
     api.get('/movies/search', { params: { q: genre, page: 1 } })
       .then((res) => {
@@ -59,7 +63,7 @@ function GenreBasedRow({ title, genre, excludeIds = [] }: { title: string; genre
       })
       .catch(() => setMovies([]))
       .finally(() => setLoading(false));
-  }, [genre, excludeIds.join(',')]);
+  }, [genre, excludeKey]);
 
   if (loading) return null;
   if (movies.length === 0) return null;
