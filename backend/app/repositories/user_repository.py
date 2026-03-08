@@ -203,12 +203,69 @@ class UserRepository:
             cursor.execute("DELETE FROM bookmarks WHERE firebase_uid = %s", (firebase_uid,))
             # Delete ratings
             cursor.execute("DELETE FROM ratings WHERE firebase_uid = %s", (firebase_uid,))
-            # Commit both deletes in a single transaction
+            # Delete preferences
+            cursor.execute("DELETE FROM user_preferences WHERE firebase_uid = %s", (firebase_uid,))
+            # Commit all deletes in a single transaction
             conn.commit()
             return True
         except Exception:
             conn.rollback()
             logger.exception(f"Error deleting user data for user {firebase_uid}")
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def get_user_preferences(firebase_uid: str) -> dict:
+        """Get user content preferences, returning defaults if not set."""
+        conn = get_connection()
+        if not conn:
+            return {"filter_adult": False}
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT filter_adult FROM user_preferences WHERE firebase_uid = %s",
+                (firebase_uid,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return {"filter_adult": bool(row[0])}
+            return {"filter_adult": False}
+        except Exception:
+            logger.exception(f"Error getting preferences for user {firebase_uid}")
+            return {"filter_adult": False}
+        finally:
+            if cursor:
+                cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def set_user_preferences(firebase_uid: str, filter_adult: bool) -> bool:
+        """Upsert user content preferences."""
+        conn = get_connection()
+        if not conn:
+            return False
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO user_preferences (firebase_uid, filter_adult, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (firebase_uid) DO UPDATE
+                    SET filter_adult = EXCLUDED.filter_adult,
+                        updated_at = CURRENT_TIMESTAMP
+                """,
+                (firebase_uid, filter_adult)
+            )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            logger.exception(f"Error setting preferences for user {firebase_uid}")
             return False
         finally:
             if cursor:

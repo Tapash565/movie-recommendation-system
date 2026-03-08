@@ -99,8 +99,9 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
     return None
 
 
-def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str | None = None) -> list[dict[str, Any]]:
+def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str | None = None, filter_adult: bool = False) -> list[dict[str, Any]]:
     """Search movies by title with fuzzy matching."""
+    df = apply_adult_filter(df, filter_adult)
     query = query.strip().lower()
     if not query:
         return []
@@ -161,6 +162,13 @@ def _order_movies(movies: list[dict[str, Any]], order_by: str | None) -> list[di
         return movies
 
 
+def apply_adult_filter(df: pd.DataFrame, filter_adult: bool) -> pd.DataFrame:
+    """Filter out adult content if filter_adult is True."""
+    if not filter_adult or 'adult' not in df.columns:
+        return df
+    return df[~df['adult'].astype(str).str.lower().isin(['true', '1', 'yes'])]
+
+
 def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
     """Load the FAISS retriever for movie recommendations.
 
@@ -184,10 +192,11 @@ def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
         return None
 
 
-def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike | None, k: int = 5) -> list[dict[str, Any]]:
+def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike | None, k: int = 5, filter_adult: bool = False) -> list[dict[str, Any]]:
     """Get movie recommendations based on a title."""
     try:
         title = title.strip()
+        df = apply_adult_filter(df, filter_adult)
         if title not in df['title'].values or retriever is None:
             return []
         results = retriever.invoke(title)
@@ -206,10 +215,12 @@ def get_personalized_recommendations(
     user_library_ids: list[int],
     df: pd.DataFrame,
     retriever: RetrieverLike | None,
-    limit: int = 16
+    limit: int = 16,
+    filter_adult: bool = False
 ) -> list[dict[str, Any]]:
     """Get personalized recommendations based on user's movie library."""
     try:
+        df = apply_adult_filter(df, filter_adult)
         if not user_library_ids or retriever is None:
             return []
         library_titles = []
@@ -223,7 +234,7 @@ def get_personalized_recommendations(
         user_library_set = set(user_library_ids)
         for title in library_titles:
             try:
-                recs = get_recommendations(title, df, retriever, k=10)
+                recs = get_recommendations(title, df, retriever, k=10, filter_adult=False)
                 for rec in recs:
                     movie_id = rec['id']
                     if movie_id in user_library_set:

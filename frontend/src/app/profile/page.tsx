@@ -15,6 +15,10 @@ export default function ProfilePage() {
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [filterAdult, setFilterAdult] = useState(false);
+  const [prefsLoading, setPrefsLoading] = useState(true);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+  const [prefError, setPrefError] = useState("");
 
   const handleDeleteAccount = async () => {
     if (confirmText !== "DELETE") {
@@ -45,6 +49,42 @@ export default function ProfilePage() {
       await signOut(auth);
     }
     router.push("/login");
+  };
+
+  // Fetch preferences when user is loaded
+  useEffect(() => {
+    if (!user) return;
+    const controller = new AbortController();
+    setPrefsLoading(true);
+    api.get('/preferences', { signal: controller.signal })
+      .then((res) => {
+        setFilterAdult(res.data.filter_adult);
+        try { localStorage.setItem('filter_adult', String(res.data.filter_adult)); } catch { /* storage unavailable */ }
+      })
+      .catch((err) => {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+        // Fall back to localStorage value if API fails
+        try { setFilterAdult(localStorage.getItem('filter_adult') === 'true'); } catch { /* storage unavailable */ }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPrefsLoading(false);
+      });
+    return () => controller.abort();
+  }, [user]);
+
+  const handleToggleAdultFilter = async () => {
+    const newValue = !filterAdult;
+    setPrefsSaving(true);
+    setPrefError("");
+    try {
+      await api.patch('/preferences', { filter_adult: newValue });
+      setFilterAdult(newValue);
+      try { localStorage.setItem('filter_adult', String(newValue)); } catch { /* storage unavailable */ }
+    } catch {
+      setPrefError("Failed to save preference. Please try again.");
+    } finally {
+      setPrefsSaving(false);
+    }
   };
 
   // Redirect to login if user is not authenticated (useEffect must be before any early returns)
@@ -116,6 +156,38 @@ export default function ProfilePage() {
               Discover Movies
             </Link>
           </div>
+        </div>
+
+        {/* Content Preferences */}
+        <div className="bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-6">
+          <h2 className="text-xl font-semibold text-white mb-1">Content Preferences</h2>
+          <p className="text-gray-400 text-sm mb-4">Control the type of content shown across the app.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white font-medium">Filter Adult Content</p>
+              <p className="text-gray-400 text-sm">Hide movies marked as adult content from all pages.</p>
+            </div>
+            <button
+              onClick={handleToggleAdultFilter}
+              disabled={prefsLoading || prefsSaving}
+              role="switch"
+              aria-checked={filterAdult}
+              aria-disabled={prefsLoading || prefsSaving}
+              aria-label="Toggle adult content filter"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 ${
+                filterAdult ? 'bg-purple-600' : 'bg-white/20'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  filterAdult ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {prefError && (
+            <p className="mt-3 text-sm text-red-400">{prefError}</p>
+          )}
         </div>
 
         {/* Sign Out */}

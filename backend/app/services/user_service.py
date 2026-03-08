@@ -98,11 +98,6 @@ def add_rating(firebase_uid: str, movie_id: int, movie_title: str, rating: float
     return user_repo.add_rating(firebase_uid, movie_id, movie_title, rating)
 
 
-def delete_user_data(firebase_uid: str) -> bool:
-    """Delete all user data (bookmarks and ratings) in a single transaction. Returns True on success."""
-    return user_repo.delete_user_data_transactional(firebase_uid)
-
-
 def _redact_uid(uid: str) -> str:
     """Create a short hash of UID for logging purposes (privacy-friendly)."""
     import hashlib
@@ -123,3 +118,18 @@ def delete_user_data(firebase_uid: str) -> bool:
     except Exception:
         logger.exception(f"Failed to delete user data for UID: {redacted_uid}")
         return False
+
+def get_preferences(firebase_uid: str) -> dict:
+    """Get user content preferences."""
+    return user_repo.get_user_preferences(firebase_uid)
+
+
+def update_preferences(firebase_uid: str, filter_adult: bool) -> dict:
+    """Update user content preferences."""
+    success = user_repo.set_user_preferences(firebase_uid, filter_adult)
+    if not success:
+        raise RuntimeError(
+            f"Failed to save preferences for UID {_redact_uid(firebase_uid)}: "
+            f"filter_adult={filter_adult}"
+        )
+    return {"filter_adult": filter_adult}
