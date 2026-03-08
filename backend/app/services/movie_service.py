@@ -101,7 +101,7 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
 
 def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str | None = None, filter_adult: bool = False) -> list[dict[str, Any]]:
     """Search movies by title with fuzzy matching."""
-    df = _apply_adult_filter(df, filter_adult)
+    df = apply_adult_filter(df, filter_adult)
     query = query.strip().lower()
     if not query:
         return []
@@ -162,7 +162,7 @@ def _order_movies(movies: list[dict[str, Any]], order_by: str | None) -> list[di
         return movies
 
 
-def _apply_adult_filter(df: pd.DataFrame, filter_adult: bool) -> pd.DataFrame:
+def apply_adult_filter(df: pd.DataFrame, filter_adult: bool) -> pd.DataFrame:
     """Filter out adult content if filter_adult is True."""
     if not filter_adult or 'adult' not in df.columns:
         return df
@@ -196,7 +196,7 @@ def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike |
     """Get movie recommendations based on a title."""
     try:
         title = title.strip()
-        df = _apply_adult_filter(df, filter_adult)
+        df = apply_adult_filter(df, filter_adult)
         if title not in df['title'].values or retriever is None:
             return []
         results = retriever.invoke(title)
@@ -220,7 +220,7 @@ def get_personalized_recommendations(
 ) -> list[dict[str, Any]]:
     """Get personalized recommendations based on user's movie library."""
     try:
-        df = _apply_adult_filter(df, filter_adult)
+        df = apply_adult_filter(df, filter_adult)
         if not user_library_ids or retriever is None:
             return []
         library_titles = []
@@ -234,7 +234,7 @@ def get_personalized_recommendations(
         user_library_set = set(user_library_ids)
         for title in library_titles:
             try:
-                recs = get_recommendations(title, df, retriever, k=10)
+                recs = get_recommendations(title, df, retriever, k=10, filter_adult=False)
                 for rec in recs:
                     movie_id = rec['id']
                     if movie_id in user_library_set:

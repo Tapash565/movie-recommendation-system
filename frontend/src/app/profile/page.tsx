@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [filterAdult, setFilterAdult] = useState(false);
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefsSaving, setPrefsSaving] = useState(false);
+  const [prefError, setPrefError] = useState("");
 
   const handleDeleteAccount = async () => {
     if (confirmText !== "DELETE") {
@@ -57,11 +58,11 @@ export default function ProfilePage() {
     api.get('/preferences')
       .then((res) => {
         setFilterAdult(res.data.filter_adult);
-        localStorage.setItem('filter_adult', String(res.data.filter_adult));
+        try { localStorage.setItem('filter_adult', String(res.data.filter_adult)); } catch { /* storage unavailable */ }
       })
       .catch(() => {
         // Fall back to localStorage value if API fails
-        setFilterAdult(localStorage.getItem('filter_adult') === 'true');
+        try { setFilterAdult(localStorage.getItem('filter_adult') === 'true'); } catch { /* storage unavailable */ }
       })
       .finally(() => setPrefsLoading(false));
   }, [user]);
@@ -69,12 +70,13 @@ export default function ProfilePage() {
   const handleToggleAdultFilter = async () => {
     const newValue = !filterAdult;
     setPrefsSaving(true);
+    setPrefError("");
     try {
       await api.patch('/preferences', { filter_adult: newValue });
       setFilterAdult(newValue);
-      localStorage.setItem('filter_adult', String(newValue));
+      try { localStorage.setItem('filter_adult', String(newValue)); } catch { /* storage unavailable */ }
     } catch {
-      // revert on error — no state change
+      setPrefError("Failed to save preference. Please try again.");
     } finally {
       setPrefsSaving(false);
     }
@@ -175,6 +177,9 @@ export default function ProfilePage() {
               />
             </button>
           </div>
+          {prefError && (
+            <p className="mt-3 text-sm text-red-400">{prefError}</p>
+          )}
         </div>
 
         {/* Sign Out */}

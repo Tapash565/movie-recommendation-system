@@ -154,4 +154,11 @@ def update_preferences(request: Request, prefs: UserPreferencesUpdate, user=Depe
     firebase_uid = user.get("uid")
     if not firebase_uid:
         raise HTTPException(status_code=403, detail="Forbidden")
-    return services.update_preferences(firebase_uid, prefs.filter_adult)
+    try:
+        return services.update_preferences(firebase_uid, prefs.filter_adult)
+    except Exception:
+        logger.exception(f"Failed to update preferences for {_redact_uid(firebase_uid)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save preferences. Please try again.",
+        )

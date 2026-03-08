@@ -4,7 +4,8 @@ from .movie_service import (
     search_movies,
     load_retriever,
     get_recommendations,
-    get_personalized_recommendations
+    get_personalized_recommendations,
+    apply_adult_filter,
 )
 from .user_service import (
     get_user_library,

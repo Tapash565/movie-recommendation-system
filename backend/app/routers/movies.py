@@ -28,7 +28,7 @@ def get_trending_movies(
         return []
 
     # Apply adult content filter
-    filtered_df = df[~df['adult'].astype(str).str.lower().isin(['true', '1', 'yes'])] if filter_adult and 'adult' in df.columns else df
+    filtered_df = services.apply_adult_filter(df, filter_adult)
 
     # Sample 12 random movies
     trending = filtered_df.sample(min(12, len(filtered_df)))
