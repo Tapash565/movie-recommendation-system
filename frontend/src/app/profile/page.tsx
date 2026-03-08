@@ -54,17 +54,22 @@ export default function ProfilePage() {
   // Fetch preferences when user is loaded
   useEffect(() => {
     if (!user) return;
+    const controller = new AbortController();
     setPrefsLoading(true);
-    api.get('/preferences')
+    api.get('/preferences', { signal: controller.signal })
       .then((res) => {
         setFilterAdult(res.data.filter_adult);
         try { localStorage.setItem('filter_adult', String(res.data.filter_adult)); } catch { /* storage unavailable */ }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
         // Fall back to localStorage value if API fails
         try { setFilterAdult(localStorage.getItem('filter_adult') === 'true'); } catch { /* storage unavailable */ }
       })
-      .finally(() => setPrefsLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) setPrefsLoading(false);
+      });
+    return () => controller.abort();
   }, [user]);
 
   const handleToggleAdultFilter = async () => {
