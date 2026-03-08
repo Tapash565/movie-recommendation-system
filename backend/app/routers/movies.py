@@ -14,6 +14,21 @@ logger = get_logger("movies")
 
 router = APIRouter()
 
+
+def get_effective_filter_adult(user, query_filter_adult: bool) -> bool:
+    """Resolve the effective adult-content filter for a request.
+
+    Merges the incoming query-param value with the authenticated user's stored
+    preference (if available). Returns True if either source requests filtering.
+    """
+    if user:
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            prefs = user_repo.get_user_preferences(firebase_uid)
+            return query_filter_adult or prefs.get("filter_adult", False)
+    return query_filter_adult
+
+
 @router.get("/movies/trending", response_model=List[Movie])
 @limiter.limit("10/minute")
 def get_trending_movies(
@@ -23,12 +38,7 @@ def get_trending_movies(
     df=Depends(get_df)
 ):
     """Get trending movies (random sample of 12)."""
-    # Merge query param with authenticated user's stored preference
-    if user:
-        firebase_uid = user.get("uid")
-        if firebase_uid:
-            prefs = user_repo.get_user_preferences(firebase_uid)
-            filter_adult = filter_adult or prefs.get("filter_adult", False)
+    filter_adult = get_effective_filter_adult(user, filter_adult)
 
     # Check if data is available
     if df.empty:
@@ -60,12 +70,7 @@ def search_movies(
     df=Depends(get_df)
 ):
     """Search for movies with pagination."""
-    # Merge query param with authenticated user's stored preference
-    if user:
-        firebase_uid = user.get("uid")
-        if firebase_uid:
-            prefs = user_repo.get_user_preferences(firebase_uid)
-            filter_adult = filter_adult or prefs.get("filter_adult", False)
+    filter_adult = get_effective_filter_adult(user, filter_adult)
 
     results = []
     total_results = 0
@@ -115,14 +120,8 @@ def get_movie_details_api(
     retriever=Depends(get_retriever)
 ):
     """Get details for a specific movie."""
-    # Resolve effective filter: merge query param with authenticated user's stored preference
-    effective_filter_adult = filter_adult
-    firebase_uid = None
-    if user:
-        firebase_uid = user.get("uid")
-        if firebase_uid:
-            prefs = user_repo.get_user_preferences(firebase_uid)
-            effective_filter_adult = effective_filter_adult or prefs.get("filter_adult", False)
+    firebase_uid = user.get("uid") if user else None
+    effective_filter_adult = get_effective_filter_adult(user, filter_adult)
 
     movie = services.get_movie_details(movie_id, df)
     if not movie:

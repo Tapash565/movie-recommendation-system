@@ -95,11 +95,7 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
             details['year'] = 'N/A'
 
         # Normalize adult field to a proper boolean
-        raw_adult = details.get('adult', False)
-        if isinstance(raw_adult, bool):
-            details['adult'] = raw_adult
-        else:
-            details['adult'] = str(raw_adult).strip().lower() in ('true', '1', 'yes')
+        details['adult'] = parse_adult_value(details.get('adult', False))
 
         details['poster_url'] = get_poster_url(details.get('poster_path'))
         return sanitize_for_json(details)
@@ -169,11 +165,25 @@ def _order_movies(movies: list[dict[str, Any]], order_by: str | None) -> list[di
         return movies
 
 
+_ADULT_TRUTHY: frozenset[str] = frozenset({'true', '1', 'yes'})
+
+
+def parse_adult_value(val) -> bool:
+    """Coerce a raw adult-field value to a canonical boolean.
+
+    Acts as the single source of truth for the truthy set so that
+    apply_adult_filter and get_movie_details always agree.
+    """
+    if isinstance(val, bool):
+        return val
+    return str(val).strip().lower() in _ADULT_TRUTHY
+
+
 def apply_adult_filter(df: pd.DataFrame, filter_adult: bool) -> pd.DataFrame:
     """Filter out adult content if filter_adult is True."""
     if not filter_adult or 'adult' not in df.columns:
         return df
-    return df[~df['adult'].astype(str).str.lower().isin(['true', '1', 'yes'])]
+    return df[~df['adult'].astype(str).str.lower().isin(_ADULT_TRUTHY)]
 
 
 def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
