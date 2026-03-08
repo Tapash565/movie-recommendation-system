@@ -25,6 +25,12 @@ def get_user_library(
     bookmarks_raw = user_repo.get_user_bookmarks(firebase_uid)
     ratings_raw = user_repo.get_user_ratings(firebase_uid)
 
+    # Restrict to IDs that exist in the (possibly adult-filtered) DataFrame so that
+    # pagination totals always match what get_details_bulk can actually hydrate
+    valid_ids = set(df['id'].tolist())
+    bookmarks_raw = [b for b in bookmarks_raw if b['movie_id'] in valid_ids]
+    ratings_raw = [r for r in ratings_raw if r['movie_id'] in valid_ids]
+
     # Filter by status
     all_to_watch = [b for b in bookmarks_raw if b['status'] == 'to_watch']
     all_watched = [b for b in bookmarks_raw if b['status'] == 'watched']
