@@ -7,6 +7,7 @@ from ..dependencies import get_df, get_current_user
 from ..rate_limit import limiter
 from ..logger import get_logger
 from ..services.firebase_service import delete_firebase_user
+from ..repositories import user_repo
 
 
 # Initialize logger for users
@@ -45,7 +46,10 @@ def get_library(
             "pagination": {"page": page, "page_size": page_size, "total": 0}
         }
 
-    return services.get_user_library(firebase_uid, email, df, page, page_size)
+    prefs = user_repo.get_user_preferences(firebase_uid)
+    filter_adult = prefs.get("filter_adult", False)
+
+    return services.get_user_library(firebase_uid, email, df, page, page_size, filter_adult=filter_adult)
 
 
 # --- API Endpoints ---

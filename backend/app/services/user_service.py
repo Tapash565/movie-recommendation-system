@@ -1,7 +1,7 @@
 from typing import Any
 import pandas as pd
 from ..repositories import user_repo
-from .movie_service import get_movie_details
+from .movie_service import get_movie_details, apply_adult_filter
 from ..logger import get_logger
 
 logger = get_logger("user_service")
@@ -12,11 +12,15 @@ def get_user_library(
     email: str,
     df: pd.DataFrame,
     page: int = 1,
-    page_size: int = 12
+    page_size: int = 12,
+    filter_adult: bool = False
 ) -> dict[str, Any]:
     """
     Get and paginate the user's movie library.
     """
+    # Apply adult filter to the DataFrame so adult movies are invisible during hydration
+    df = apply_adult_filter(df, filter_adult)
+
     # Get user data from database
     bookmarks_raw = user_repo.get_user_bookmarks(firebase_uid)
     ratings_raw = user_repo.get_user_ratings(firebase_uid)
