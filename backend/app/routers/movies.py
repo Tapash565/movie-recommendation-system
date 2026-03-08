@@ -19,9 +19,17 @@ router = APIRouter()
 def get_trending_movies(
     request: Request,
     filter_adult: bool = Query(False, description="Filter out adult content"),
+    user=Depends(get_optional_user),
     df=Depends(get_df)
 ):
     """Get trending movies (random sample of 12)."""
+    # Merge query param with authenticated user's stored preference
+    if user:
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            prefs = user_repo.get_user_preferences(firebase_uid)
+            filter_adult = filter_adult or prefs.get("filter_adult", False)
+
     # Check if data is available
     if df.empty:
         logger.error("Movie data not available - returning empty list")
@@ -48,9 +56,17 @@ def search_movies(
     page_size: int = Query(24, ge=1, le=100),
     order_by: Optional[str] = None,
     filter_adult: bool = Query(False, description="Filter out adult content"),
+    user=Depends(get_optional_user),
     df=Depends(get_df)
 ):
     """Search for movies with pagination."""
+    # Merge query param with authenticated user's stored preference
+    if user:
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            prefs = user_repo.get_user_preferences(firebase_uid)
+            filter_adult = filter_adult or prefs.get("filter_adult", False)
+
     results = []
     total_results = 0
     
@@ -99,30 +115,38 @@ def get_movie_details_api(
     retriever=Depends(get_retriever)
 ):
     """Get details for a specific movie."""
+    # Resolve effective filter: merge query param with authenticated user's stored preference
+    effective_filter_adult = filter_adult
+    firebase_uid = None
+    if user:
+        firebase_uid = user.get("uid")
+        if firebase_uid:
+            prefs = user_repo.get_user_preferences(firebase_uid)
+            effective_filter_adult = effective_filter_adult or prefs.get("filter_adult", False)
+
     movie = services.get_movie_details(movie_id, df)
     if not movie:
         logger.warning(f"Movie ID {movie_id} not found.")
         raise HTTPException(status_code=404, detail="Movie not found")
 
-    if filter_adult and str(movie.get("adult", "")).lower() in ("true", "1", "yes"):
+    # adult is now a normalized bool from get_movie_details
+    if effective_filter_adult and movie.get("adult"):
         logger.warning(f"Movie ID {movie_id} hidden: adult content filter is active.")
         raise HTTPException(status_code=404, detail="Movie not found")
 
     # Get recommendations
     logger.info(f"Generating recommendations for movie: '{movie['title']}' (ID: {movie_id})")
-    recommendations = services.get_recommendations(movie['title'], df, retriever, filter_adult=filter_adult)
+    recommendations = services.get_recommendations(movie['title'], df, retriever, filter_adult=effective_filter_adult)
     
     # Get user interaction status if logged in via Firebase
     bookmark_status = None
     user_rating = 0
-    
-    if user:
-        firebase_uid = user.get("uid")
-        if firebase_uid:
-            bookmark_status = user_repo.get_bookmark_status(firebase_uid, movie_id)
-            rating_val = user_repo.get_rating(firebase_uid, movie_id)
-            if rating_val is not None:
-                user_rating = rating_val
+
+    if firebase_uid:
+        bookmark_status = user_repo.get_bookmark_status(firebase_uid, movie_id)
+        rating_val = user_repo.get_rating(firebase_uid, movie_id)
+        if rating_val is not None:
+            user_rating = rating_val
             
     # Combine data
     movie_data = movie.copy()

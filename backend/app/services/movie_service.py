@@ -94,6 +94,13 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
         elif 'year' not in details:
             details['year'] = 'N/A'
 
+        # Normalize adult field to a proper boolean
+        raw_adult = details.get('adult', False)
+        if isinstance(raw_adult, bool):
+            details['adult'] = raw_adult
+        else:
+            details['adult'] = str(raw_adult).strip().lower() in ('true', '1', 'yes')
+
         details['poster_url'] = get_poster_url(details.get('poster_path'))
         return sanitize_for_json(details)
     return None
@@ -234,7 +241,7 @@ def get_personalized_recommendations(
         user_library_set = set(user_library_ids)
         for title in library_titles:
             try:
-                recs = get_recommendations(title, df, retriever, k=10, filter_adult=False)
+                recs = get_recommendations(title, df, retriever, k=10, filter_adult=filter_adult)
                 for rec in recs:
                     movie_id = rec['id']
                     if movie_id in user_library_set:
