@@ -103,7 +103,11 @@ def get_movie_details_api(
     if not movie:
         logger.warning(f"Movie ID {movie_id} not found.")
         raise HTTPException(status_code=404, detail="Movie not found")
-    
+
+    if filter_adult and str(movie.get("adult", "")).lower() in ("true", "1", "yes"):
+        logger.warning(f"Movie ID {movie_id} hidden: adult content filter is active.")
+        raise HTTPException(status_code=404, detail="Movie not found")
+
     # Get recommendations
     logger.info(f"Generating recommendations for movie: '{movie['title']}' (ID: {movie_id})")
     recommendations = services.get_recommendations(movie['title'], df, retriever, filter_adult=filter_adult)
