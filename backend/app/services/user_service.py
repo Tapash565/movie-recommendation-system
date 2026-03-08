@@ -123,3 +123,13 @@ def delete_user_data(firebase_uid: str) -> bool:
     except Exception:
         logger.exception(f"Failed to delete user data for UID: {redacted_uid}")
         return False
+
+def get_preferences(firebase_uid: str) -> dict:
+    """Get user content preferences."""
+    return user_repo.get_user_preferences(firebase_uid)
+
+
+def update_preferences(firebase_uid: str, filter_adult: bool) -> dict:
+    """Update user content preferences."""
+    user_repo.set_user_preferences(firebase_uid, filter_adult)
+    return {"filter_adult": filter_adult}

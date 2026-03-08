@@ -27,7 +27,8 @@ function SearchContent() {
     useEffect(() => {
         if (q) {
             setLoading(true);
-            api.get('/movies/search', { params: { q, order_by: orderBy, page } })
+            const filterAdult = typeof window !== 'undefined' && localStorage.getItem('filter_adult') === 'true';
+            api.get('/movies/search', { params: { q, order_by: orderBy, page, filter_adult: filterAdult } })
                 .then((res) => {
                     setMovies(res.data.movies);
                     setTotalResults(res.data.total_results || 0);

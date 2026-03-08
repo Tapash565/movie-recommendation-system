@@ -11,7 +11,9 @@ from .user_service import (
     add_bookmark,
     remove_bookmark,
     add_rating,
-    delete_user_data
+    delete_user_data,
+    get_preferences,
+    update_preferences
 )
 from .utils import (
     sanitize_for_json,

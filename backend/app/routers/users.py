@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
 import hashlib
-from ..schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest
+from ..schemas import BookmarkRequest, RatingRequest, RemoveBookmarkRequest, UserPreferences, UserPreferencesUpdate
 
 from .. import services
 from ..dependencies import get_df, get_current_user
@@ -135,3 +135,23 @@ async def delete_my_account(request: Request, user=Depends(get_current_user)):
 
     logger.info(f"Successfully deleted account for user {redacted_uid}")
     return None
+
+
+@router.get("/preferences", response_model=UserPreferences)
+@limiter.limit("30/minute")
+def get_preferences(request: Request, user=Depends(get_current_user)):
+    """Get user content preferences."""
+    firebase_uid = user.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return services.get_preferences(firebase_uid)
+
+
+@router.patch("/preferences", response_model=UserPreferences)
+@limiter.limit("30/minute")
+def update_preferences(request: Request, prefs: UserPreferencesUpdate, user=Depends(get_current_user)):
+    """Update user content preferences."""
+    firebase_uid = user.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return services.update_preferences(firebase_uid, prefs.filter_adult)

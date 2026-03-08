@@ -192,6 +192,14 @@ def init_db():
                 UNIQUE(firebase_uid, movie_id)
             )
             """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                firebase_uid TEXT PRIMARY KEY,
+                filter_adult BOOLEAN NOT NULL DEFAULT FALSE,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
             conn.commit()
     except Exception:
         conn.rollback()

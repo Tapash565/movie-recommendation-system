@@ -20,7 +20,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    api.get('/movies/trending')
+    const filterAdult = typeof window !== 'undefined' && localStorage.getItem('filter_adult') === 'true';
+    api.get('/movies/trending', { params: { filter_adult: filterAdult } })
       .then((res) => setMovies(res.data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));

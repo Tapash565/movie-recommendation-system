@@ -53,11 +53,14 @@ def get_recommendations_page(
             library_ids.add(r['movie_id'])
     
     # Generate personalized recommendations
+    prefs = user_repo.get_user_preferences(firebase_uid)
+    filter_adult = prefs.get("filter_adult", False)
     recommendations = services.get_personalized_recommendations(
         user_library_ids=list(library_ids),
         df=df,
         retriever=retriever,
-        limit=16
+        limit=16,
+        filter_adult=filter_adult
     )
     
     return recommendations

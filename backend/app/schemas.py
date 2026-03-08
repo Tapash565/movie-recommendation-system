@@ -54,3 +54,9 @@ class RatingRequest(BaseModel):
 class RemoveBookmarkRequest(BaseModel):
     movie_id: int
 
+class UserPreferences(BaseModel):
+    filter_adult: bool = False
+
+class UserPreferencesUpdate(BaseModel):
+    filter_adult: bool
+
