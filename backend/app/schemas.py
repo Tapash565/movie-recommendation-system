@@ -19,6 +19,7 @@ class Movie(BaseModel):
     runtime: Optional[float] = None
     budget: Optional[float] = None
     revenue: Optional[float] = None
+    adult: Optional[bool] = False
 
 class MovieDetail(Movie):
     recommendations: List[Movie] = []

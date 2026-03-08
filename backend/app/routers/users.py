@@ -45,7 +45,10 @@ def get_library(
             "pagination": {"page": page, "page_size": page_size, "total": 0}
         }
 
-    return services.get_user_library(firebase_uid, email, df, page, page_size)
+    prefs = services.get_preferences(firebase_uid)
+    filter_adult = prefs.get("filter_adult", False)
+
+    return services.get_user_library(firebase_uid, email, df, page, page_size, filter_adult=filter_adult)
 
 
 # --- API Endpoints ---
