@@ -147,3 +147,4 @@ serviceAccount*.json
 
 # Stitch Designs
 stitch-designs/
+stitch_exports/

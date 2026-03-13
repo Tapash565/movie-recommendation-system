@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import MovieCard from '@/components/MovieCard';
 import MovieSkeleton from '@/components/MovieSkeleton';
 
@@ -19,27 +20,42 @@ function SearchContent() {
     const q = searchParams.get('q') || '';
     const orderBy = searchParams.get('order_by') || '';
     const page = parseInt(searchParams.get('page') || '1');
+    const { user, filterAdult } = useAuth();
 
     const [movies, setMovies] = useState<Movie[]>([]);
     const [totalResults, setTotalResults] = useState(0);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (q) {
-            setLoading(true);
-            const filterAdult = typeof window !== 'undefined' && localStorage.getItem('filter_adult') === 'true';
-            api.get('/movies/search', { params: { q, order_by: orderBy, page, filter_adult: filterAdult } })
-                .then((res) => {
+        if (!q) return;
+        const controller = new AbortController();
+
+        // For authenticated users the backend merges their stored preference via
+        // get_effective_filter_adult — no need to send filter_adult at all.
+        // For anonymous users we send false (no preference to apply).
+        const params: Record<string, unknown> = { q, order_by: orderBy, page };
+        if (!user) params.filter_adult = false;
+
+        api.get('/movies/search', { params, signal: controller.signal })
+            .then((res) => {
+                if (!controller.signal.aborted) {
                     setMovies(res.data.movies);
                     setTotalResults(res.data.total_results || 0);
-                })
-                .catch((err) => console.error(err))
-                .finally(() => setLoading(false));
-        } else {
-            setMovies([]);
-            setTotalResults(0);
-        }
-    }, [q, orderBy, page]);
+                }
+            })
+            .catch((err) => {
+                if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+                if (!controller.signal.aborted) console.error(err);
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setLoading(false);
+            });
+
+        return () => {
+            controller.abort();
+        };
+
+    }, [q, orderBy, page, user, filterAdult]);
 
     return (
         <main className="max-w-7xl mx-auto px-6 py-10 min-h-screen">

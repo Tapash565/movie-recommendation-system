@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import DatabaseLoader from '@/components/DatabaseLoader';
+import { AuthProvider } from '@/lib/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,10 +24,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <DatabaseLoader>
-          <Navbar />
-          <main>{children}</main>
-        </DatabaseLoader>
+        {/* AuthProvider wraps everything so all components share one Firebase listener
+            and the same user/loading state — no per-component onAuthStateChanged calls. */}
+        <AuthProvider>
+          <DatabaseLoader>
+            <Navbar />
+            <main>{children}</main>
+          </DatabaseLoader>
+        </AuthProvider>
       </body>
     </html>
   );

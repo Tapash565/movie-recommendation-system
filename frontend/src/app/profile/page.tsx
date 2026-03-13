@@ -9,68 +9,44 @@ import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, filterAdult, setFilterAdult } = useAuth();
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
-  const [filterAdult, setFilterAdult] = useState(false);
-  const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefsSaving, setPrefsSaving] = useState(false);
   const [prefError, setPrefError] = useState("");
+
+  // Redirect to login if unauthenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [loading, user, router]);
 
   const handleDeleteAccount = async () => {
     if (confirmText !== "DELETE") {
       setError('Please type "DELETE" to confirm');
       return;
     }
-
     setDeleting(true);
     setError("");
-
     try {
-      // Use the shared api instance (handles auth token automatically)
       await api.delete('/me');
-
-      // Sign out after successful deletion
       if (auth) await signOut(auth);
       router.push("/signup");
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete account";
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : "Failed to delete account");
     } finally {
       setDeleting(false);
     }
   };
 
   const handleSignOut = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
+    if (auth) await signOut(auth);
     router.push("/login");
   };
-
-  // Fetch preferences when user is loaded
-  useEffect(() => {
-    if (!user) return;
-    const controller = new AbortController();
-    setPrefsLoading(true);
-    api.get('/preferences', { signal: controller.signal })
-      .then((res) => {
-        setFilterAdult(res.data.filter_adult);
-        try { localStorage.setItem('filter_adult', String(res.data.filter_adult)); } catch { /* storage unavailable */ }
-      })
-      .catch((err) => {
-        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
-        // Fall back to localStorage value if API fails
-        try { setFilterAdult(localStorage.getItem('filter_adult') === 'true'); } catch { /* storage unavailable */ }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setPrefsLoading(false);
-      });
-    return () => controller.abort();
-  }, [user]);
 
   const handleToggleAdultFilter = async () => {
     const newValue = !filterAdult;
@@ -78,21 +54,15 @@ export default function ProfilePage() {
     setPrefError("");
     try {
       await api.patch('/preferences', { filter_adult: newValue });
+      // Update the shared AuthContext so all pages react immediately —
+      // no localStorage, no per-page refetch needed.
       setFilterAdult(newValue);
-      try { localStorage.setItem('filter_adult', String(newValue)); } catch { /* storage unavailable */ }
     } catch {
       setPrefError("Failed to save preference. Please try again.");
     } finally {
       setPrefsSaving(false);
     }
   };
-
-  // Redirect to login if user is not authenticated (useEffect must be before any early returns)
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-    }
-  }, [loading, user, router]);
 
   if (loading) {
     return (
@@ -102,9 +72,10 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
+
+  // filterAdult is null while the initial fetch is in flight
+  const prefsLoading = filterAdult === null;
 
   return (
     <div className="min-h-screen p-6 relative overflow-hidden">
@@ -143,16 +114,10 @@ export default function ProfilePage() {
         <div className="bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Quick Links</h2>
           <div className="space-y-2">
-            <Link
-              href="/library"
-              className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
-            >
+            <Link href="/library" className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
               My Library
             </Link>
-            <Link
-              href="/discover"
-              className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
-            >
+            <Link href="/discover" className="block w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
               Discover Movies
             </Link>
           </div>
@@ -171,7 +136,7 @@ export default function ProfilePage() {
               onClick={handleToggleAdultFilter}
               disabled={prefsLoading || prefsSaving}
               role="switch"
-              aria-checked={filterAdult}
+              aria-checked={filterAdult ?? false}
               aria-disabled={prefsLoading || prefsSaving}
               aria-label="Toggle adult content filter"
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 ${
@@ -185,18 +150,13 @@ export default function ProfilePage() {
               />
             </button>
           </div>
-          {prefError && (
-            <p className="mt-3 text-sm text-red-400">{prefError}</p>
-          )}
+          {prefError && <p className="mt-3 text-sm text-red-400">{prefError}</p>}
         </div>
 
         {/* Sign Out */}
         <div className="bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Session</h2>
-          <button
-            onClick={handleSignOut}
-            className="w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
-          >
+          <button onClick={handleSignOut} className="w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
             Sign Out
           </button>
         </div>
@@ -228,12 +188,10 @@ export default function ProfilePage() {
             <h3 className="text-xl font-bold text-red-400 mb-4">Delete Account</h3>
             <p className="text-gray-300 mb-4">
               This action is <span className="text-red-400 font-semibold">irreversible</span>. All
-              your data including bookmarks, ratings, and recommendations will be permanently
-              deleted.
+              your data including bookmarks, ratings, and recommendations will be permanently deleted.
             </p>
             <p className="text-gray-400 text-sm mb-4">
-              Type <span className="text-white font-mono bg-white/10 px-1 rounded">DELETE</span> to
-              confirm:
+              Type <span className="text-white font-mono bg-white/10 px-1 rounded">DELETE</span> to confirm:
             </p>
             <input
               type="text"

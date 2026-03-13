@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth, signOut } from '@/lib/auth';
 import { cn } from '@/lib/utils';
@@ -9,10 +9,10 @@ import MobileSidebar from './MobileSidebar';
 
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const { user, loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // Compute a safe display name for the user
     const displayName = user?.email?.split('@')[0] || user?.displayName || 'Guest';
 
     // Prevent body scroll when sidebar is open
@@ -30,11 +30,12 @@ export default function Navbar() {
         if (result.error) {
             console.error('Logout failed', result.error);
         } else {
-            window.location.href = '/'; // Hard reload to clear internal state
+            // Firebase's onAuthStateChanged fires automatically — the AuthContext
+            // updates and all components re-render without a full page reload.
+            router.push('/');
         }
     };
 
-    // Stabilize onClose callback to prevent unnecessary re-renders
     const handleCloseSidebar = useCallback(() => {
         setIsSidebarOpen(false);
     }, []);

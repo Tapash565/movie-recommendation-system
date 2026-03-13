@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { signUp } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function SignupPage() {
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,8 +20,9 @@ export default function SignupPage() {
         try {
             const { user, error: authError } = await signUp(email, password);
             if (user) {
-                // Hard reload to update auth state
-                window.location.href = '/';
+                // Firebase's onAuthStateChanged fires automatically — just navigate.
+                // The AuthContext updates the shared user state for the whole app.
+                router.push('/');
             } else {
                 setError(authError || 'Signup failed. Please try again.');
             }
@@ -31,15 +34,16 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+        <div className="min-h-screen flex items-center justify-center p-6">
             <div className="glass-panel p-8 w-full max-w-md">
                 <h1 className="text-3xl font-bold mb-6 text-center text-gradient">Create Account</h1>
                 {error && <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded-lg mb-4 text-sm text-center">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Email Address</label>
+                        <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
                         <input
+                            id="email"
                             type="email"
                             className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:outline-none focus:border-purple-500 transition-colors"
                             value={email}
@@ -49,16 +53,16 @@ export default function SignupPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Password</label>
+                        <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
                         <input
+                            id="password"
                             type="password"
                             className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:outline-none focus:border-purple-500 transition-colors"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Min 6 characters"
                             required
-                            minLength={6}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters for Firebase.</p>
                     </div>
                     <button
                         type="submit"

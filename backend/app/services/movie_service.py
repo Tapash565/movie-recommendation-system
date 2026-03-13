@@ -30,6 +30,72 @@ def load_movie_data(path: Path = MOVIE_LIST_PATH) -> pd.DataFrame:
         raise
 
 
+def _hydrate_row(details: dict[str, Any]) -> dict[str, Any]:
+    """Process a raw DataFrame row dict into a fully normalised movie dict.
+
+    Extracted so that callers who already hold a row (e.g. get_details_bulk)
+    can hydrate it directly without triggering a second DataFrame lookup.
+    """
+    for field in ['cast', 'crew', 'genres', 'keywords', 'production_companies']:
+        if field in details:
+            raw_value = details[field]
+            if not isinstance(raw_value, list):
+                if isinstance(raw_value, str) and raw_value:
+                    try:
+                        parsed = ast.literal_eval(raw_value)
+                        raw_value = parsed if isinstance(parsed, list) else [parsed]
+                    except Exception:
+                        raw_value = [raw_value]
+                else:
+                    raw_value = []
+            processed_items = []
+            for item in raw_value:
+                if isinstance(item, dict):
+                    name = item.get('name') or item.get('character') or item.get('job')
+                    if not name and item:
+                        name = next((v for v in item.values() if v and isinstance(v, str)), None)
+                    if name:
+                        processed_items.append(str(name).strip())
+                elif item:
+                    processed_items.append(str(item).strip())
+            details[field] = [i for i in processed_items if i and i.strip()]
+        else:
+            details[field] = []
+
+    overview_value = details.get('overview')
+    if overview_value is None or (isinstance(overview_value, float) and str(overview_value) == 'nan'):
+        details['overview'] = ""
+    else:
+        details['overview'] = str(overview_value)
+
+    for field in ['budget', 'revenue', 'runtime', 'vote_average', 'vote_count', 'popularity']:
+        if field in details:
+            val = details[field]
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                details[field] = 0.0 if field in ['vote_average', 'popularity'] else 0
+            elif isinstance(val, (int, float)):
+                details[field] = val
+            else:
+                details[field] = 0
+
+    if 'release_date' in details and details['release_date']:
+        try:
+            if isinstance(details['release_date'], str):
+                date_obj = datetime.strptime(details['release_date'], '%Y-%m-%d')
+                details['year'] = str(date_obj.year)
+            else:
+                details['year'] = 'N/A'
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Failed to parse release date '{details.get('release_date')}': {e}")
+            details['year'] = 'N/A'
+    elif 'year' not in details:
+        details['year'] = 'N/A'
+
+    details['adult'] = parse_adult_value(details.get('adult', False))
+    details['poster_url'] = get_poster_url(details.get('poster_path'))
+    return sanitize_for_json(details)
+
+
 def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any] | None:
     """Get detailed information for a movie by ID or title."""
     if isinstance(identifier, int):
@@ -38,118 +104,97 @@ def get_movie_details(identifier: int | str, df: pd.DataFrame) -> dict[str, Any]
         match = df[df['title'].str.lower() == str(identifier).lower()]
 
     if not match.empty:
-        details = match.iloc[0].to_dict()
-        for field in ['cast', 'crew', 'genres', 'keywords', 'production_companies']:
-            if field in details:
-                raw_value = details[field]
-                if not isinstance(raw_value, list):
-                    if isinstance(raw_value, str) and raw_value:
-                        try:
-                            parsed = ast.literal_eval(raw_value)
-                            raw_value = parsed if isinstance(parsed, list) else [parsed]
-                        except Exception:
-                            raw_value = [raw_value]
-                    else:
-                        raw_value = []
-                processed_items = []
-                for item in raw_value:
-                    if isinstance(item, dict):
-                        name = item.get('name') or item.get('character') or item.get('job')
-                        if not name and item:
-                            name = next((v for v in item.values() if v and isinstance(v, str)), None)
-                        if name:
-                            processed_items.append(str(name).strip())
-                    elif item:
-                        processed_items.append(str(item).strip())
-                details[field] = [item for item in processed_items if item and item.strip()]
-            else:
-                details[field] = []
-
-        overview_value = details.get('overview')
-        if overview_value is None or (isinstance(overview_value, float) and str(overview_value) == 'nan'):
-            details['overview'] = ""
-        else:
-            details['overview'] = str(overview_value)
-
-        for field in ['budget', 'revenue', 'runtime', 'vote_average', 'vote_count', 'popularity']:
-            if field in details:
-                val = details[field]
-                if val is None or (isinstance(val, float) and pd.isna(val)):
-                    details[field] = 0.0 if field in ['vote_average', 'popularity'] else 0
-                elif isinstance(val, (int, float)):
-                    details[field] = val
-                else:
-                    details[field] = 0
-
-        if 'release_date' in details and details['release_date']:
-            try:
-                if isinstance(details['release_date'], str):
-                    date_obj = datetime.strptime(details['release_date'], '%Y-%m-%d')
-                    details['year'] = str(date_obj.year)
-                else:
-                    details['year'] = 'N/A'
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Failed to parse release date '{details.get('release_date')}': {e}")
-                details['year'] = 'N/A'
-        elif 'year' not in details:
-            details['year'] = 'N/A'
-
-        # Normalize adult field to a proper boolean
-        details['adult'] = parse_adult_value(details.get('adult', False))
-
-        details['poster_url'] = get_poster_url(details.get('poster_path'))
-        return sanitize_for_json(details)
+        return _hydrate_row(match.iloc[0].to_dict())
     return None
 
 
+def _collect_matching_titles(query: str, df: pd.DataFrame) -> list[str]:
+    """Collect all matching movie titles in relevance order without hydrating details.
+
+    Returns a deduplicated ordered list of titles across all match tiers
+    (exact → starts-with → contains → fuzzy → keywords). No limit is applied
+    so the caller gets the full result set for accurate pagination counts.
+    """
+    results_ordered: list[str] = []
+    seen_titles: set[str] = set()
+
+    def add_unique(titles: list[str]) -> None:
+        for t in titles:
+            if t not in seen_titles:
+                results_ordered.append(t)
+                seen_titles.add(t)
+
+    add_unique(df[df['title'].str.lower() == query]['title'].tolist())
+    add_unique(df[df['title'].str.lower().str.startswith(query, na=False)]['title'].tolist())
+    add_unique(df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist())
+
+    fuzzy_results = process.extract(query, df['title'].tolist(), scorer=fuzz.token_set_ratio, limit=50)
+    add_unique([m[0] for m in fuzzy_results if m[1] >= 80])
+
+    if 'keywords' in df.columns:
+        add_unique(df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist())
+
+    return results_ordered
+
+
+def search_movies_paginated(
+    query: str,
+    df: pd.DataFrame,
+    page: int = 1,
+    page_size: int = 24,
+    order_by: str | None = None,
+    filter_adult: bool = False,
+) -> tuple[int, list[dict[str, Any]]]:
+    """Search movies with efficient pagination.
+
+    Collects all matching titles first (cheap string ops), then hydrates only
+    the requested page slice (expensive detail parsing). This avoids the old
+    pattern of hydrating up to 1000 movies just to count them.
+
+    Returns:
+        (total_count, page_results)
+    """
+    df = apply_adult_filter(df, filter_adult)
+    query = query.strip().lower()
+    if not query:
+        return 0, []
+
+    all_titles = _collect_matching_titles(query, df)
+    total = len(all_titles)
+
+    if total == 0:
+        return 0, []
+
+    # Sort the title list using lightweight df lookups before slicing,
+    # so we only ever hydrate the one page we actually need.
+    if order_by == 'rating':
+        rating_map = df.set_index('title')['vote_average'].to_dict() if 'vote_average' in df.columns else {}
+        all_titles = sorted(all_titles, key=lambda t: rating_map.get(t, 0) or 0, reverse=True)
+    elif order_by == 'name':
+        all_titles = sorted(all_titles, key=lambda t: t.lower())
+
+    start = (page - 1) * page_size
+    page_titles = all_titles[start:start + page_size]
+
+    # Hydrate only the page slice
+    page_movies = [m for m in (get_movie_details(t, df) for t in page_titles) if m]
+    return total, page_movies
+
+
 def search_movies(query: str, df: pd.DataFrame, limit: int = 12, order_by: str | None = None, filter_adult: bool = False) -> list[dict[str, Any]]:
-    """Search movies by title with fuzzy matching."""
+    """Search movies by title with fuzzy matching.
+
+    For paginated API search, prefer search_movies_paginated which avoids
+    hydrating the full result set just to get a count.
+    """
     df = apply_adult_filter(df, filter_adult)
     query = query.strip().lower()
     if not query:
         return []
 
-    results_ordered: list[str] = []
-    seen_titles: set[str] = set()
-
-    def add_unique(titles: list[str]) -> bool:
-        for t in titles:
-            if t not in seen_titles:
-                results_ordered.append(t)
-                seen_titles.add(t)
-            if len(results_ordered) >= limit:
-                return True
-        return False
-
-    exact_matches = df[df['title'].str.lower() == query]['title'].tolist()
-    if add_unique(exact_matches):
-        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
-        return _order_movies(movies, order_by)
-
-    starts_with = df[df['title'].str.lower().str.startswith(query, na=False)]['title'].tolist()
-    if add_unique(starts_with):
-        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
-        return _order_movies(movies, order_by)
-
-    contains = df[df['title'].str.lower().str.contains(query, na=False)]['title'].tolist()
-    if add_unique(contains):
-        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
-        return _order_movies(movies, order_by)
-
-    titles_list = df['title'].tolist()
-    fuzzy_results = process.extract(query, titles_list, scorer=fuzz.token_set_ratio, limit=limit)
-    fuzzy_matches = [match[0] for match in fuzzy_results if match[1] >= 80]
-    if add_unique(fuzzy_matches):
-        movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
-        return _order_movies(movies, order_by)
-
-    if 'keywords' in df.columns:
-        keyword_matches = df[df['keywords'].str.lower().str.contains(query, na=False)]['title'].tolist()
-        if add_unique(keyword_matches):
-            movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
-            return _order_movies(movies, order_by)
-
-    movies = [m for m in (get_movie_details(t, df) for t in results_ordered) if m]
+    all_titles = _collect_matching_titles(query, df)
+    page_titles = all_titles[:limit]
+    movies = [m for m in (get_movie_details(t, df) for t in page_titles) if m]
     return _order_movies(movies, order_by)
 
 
@@ -169,11 +214,7 @@ _ADULT_TRUTHY: frozenset[str] = frozenset({'true', '1', 'yes'})
 
 
 def parse_adult_value(val) -> bool:
-    """Coerce a raw adult-field value to a canonical boolean.
-
-    Acts as the single source of truth for the truthy set so that
-    apply_adult_filter and get_movie_details always agree.
-    """
+    """Coerce a raw adult-field value to a canonical boolean."""
     if isinstance(val, bool):
         return val
     return str(val).strip().lower() in _ADULT_TRUTHY
@@ -187,21 +228,13 @@ def apply_adult_filter(df: pd.DataFrame, filter_adult: bool) -> pd.DataFrame:
 
 
 def load_retriever(path: Path = FAISS_INDEX_PATH) -> RetrieverLike | None:
-    """Load the FAISS retriever for movie recommendations.
-
-    Note: allow_dangerous_deserialization=True is required because FAISS uses
-    pickle serialization. This is safe when:
-    1. The index files are stored in a secure, non-public location
-    2. The files are generated by a trusted pipeline
-    3. Consider adding file checksum validation for production
-    """
+    """Load the FAISS retriever for movie recommendations."""
     logger.info(f"Loading Recommendation Model from {path}...")
     try:
         if not os.path.exists(path):
             logger.warning(f"FAISS index directory {path} not found.")
             return None
         embedding = HuggingFaceEndpointEmbeddings(model='sentence-transformers/all-MiniLM-L6-v2')
-        # Security: Only enable if index files are from trusted sources
         vectorstore = FAISS.load_local(path, embedding, allow_dangerous_deserialization=True)
         return vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6, "fetch_k": 30})
     except Exception:
@@ -221,7 +254,6 @@ def get_recommendations(title: str, df: pd.DataFrame, retriever: RetrieverLike |
             t for doc in results
             if (t := doc.metadata.get('title')) and t != title
         ][:k]
-        # Filter out None values from get_movie_details
         return [m for m in (get_movie_details(t, df) for t in recommendation_titles) if m]
     except Exception:
         logger.exception("Error generating recommendations")

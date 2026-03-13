@@ -2,10 +2,12 @@ from .movie_service import (
     load_movie_data,
     get_movie_details,
     search_movies,
+    search_movies_paginated,
     load_retriever,
     get_recommendations,
     get_personalized_recommendations,
     apply_adult_filter,
+    _hydrate_row,
 )
 from .user_service import (
     get_user_library,

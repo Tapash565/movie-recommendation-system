@@ -28,7 +28,7 @@ class MovieDetail(Movie):
 
 class MovieListResponse(BaseModel):
     movies: List[Movie]
-    
+
 class SearchResponse(BaseModel):
     search_query: str
     movies: List[Movie]
@@ -52,12 +52,8 @@ class RatingRequest(BaseModel):
     movie_title: str
     rating: float
 
-class RemoveBookmarkRequest(BaseModel):
-    movie_id: int
-
 class UserPreferences(BaseModel):
     filter_adult: bool = False
 
 class UserPreferencesUpdate(BaseModel):
     filter_adult: bool
-

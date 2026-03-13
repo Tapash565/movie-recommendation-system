@@ -2,35 +2,13 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut as firebaseSignOut,
-    onAuthStateChanged,
-    User
 } from "firebase/auth";
-import { useState, useEffect } from "react";
 import { isAxiosError } from "axios";
 import { auth } from "./firebase";
 import api from "./api";
 
-/**
- * Hook to manage authentication state across the app.
- */
-export function useAuth() {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!auth) {
-            setTimeout(() => setLoading(false), 0);
-            return;
-        }
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    }, []);
-
-    return { user, loading };
-}
+// Re-export useAuth from the context so existing imports of useAuth from auth.ts keep working
+export { useAuth } from './AuthContext';
 
 /**
  * Safely extracts an error message from any caught error.

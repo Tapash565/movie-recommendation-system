@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import MovieCard from '@/components/MovieCard';
 import { motion } from 'framer-motion';
 import InfiniteMarquee from '@/components/InfiniteMarquee';
@@ -18,31 +19,33 @@ export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, filterAdult } = useAuth();
 
   useEffect(() => {
-    const filterAdult = typeof window !== 'undefined' && localStorage.getItem('filter_adult') === 'true';
-    api.get('/movies/trending', { params: { filter_adult: filterAdult } })
+    // For authenticated users the backend merges their stored preference —
+    // no need to send filter_adult. For anonymous users send false.
+    const params: Record<string, unknown> = {};
+    if (!user) params.filter_adult = false;
+
+    api.get('/movies/trending', { params })
       .then((res) => setMovies(res.data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
-  }, []);
+
+  // Re-fetch when filterAdult changes (e.g. toggled in Profile while on home)
+  }, [user, filterAdult]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1
-    }
+    visible: { y: 0, opacity: 1 }
   };
 
   return (
@@ -112,7 +115,6 @@ export default function Home() {
         </div>
       </motion.div>
 
-
       {/* Marquee Section */}
       {!loading && movies.length > 0 && (
         <div className="mb-16">
@@ -130,18 +132,31 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="aspect-2/3 bg-gray-800/50 rounded-2xl animate-pulse"></div>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
+          >
+            {[...Array(12)].map((_, i) => (
+              <motion.div key={i} variants={itemVariants} className="bg-gray-900 rounded-xl overflow-hidden shadow-lg animate-pulse">
+                <div className="aspect-2/3 w-full bg-gray-800"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-5 bg-gray-800 rounded w-3/4"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-800 rounded w-1/4"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/4"></div>
+                  </div>
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"
+            animate="visible"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
           >
             {movies.map((movie) => (
               <motion.div key={movie.id} variants={itemVariants}>

@@ -53,14 +53,39 @@ const TabButton = ({ id, label, count, activeTab, onClick }: {
 export default function LibraryPage() {
     const [data, setData] = useState<LibraryData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'watchlist' | 'watched' | 'rated'>('watchlist');
 
     useEffect(() => {
-        setLoading(true);
+        let ignore = false;
+
         api.get('/library')
-            .then((res) => setData(res.data))
-            .catch((err) => console.error(err))
-            .finally(() => setLoading(false));
+            .then((res) => {
+                if (!ignore) {
+                    setData(res.data);
+                }
+            })
+            .catch((err) => {
+                if (ignore) return;
+
+                console.error(err);
+                const status = err?.response?.status;
+
+                if (status === 401 || status === 403) {
+                    setError('Please log in to view your library.');
+                } else {
+                    setError('Failed to load your library. Please try again.');
+                }
+            })
+            .finally(() => {
+                if (!ignore) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            ignore = true;
+        };
     }, []);
 
     const counts = {
@@ -75,55 +100,61 @@ export default function LibraryPage() {
                 <h1 className="text-3xl font-bold">My Library</h1>
             </header>
 
-            <div className="flex flex-wrap gap-4 mb-10" role="tablist" aria-label="Library Folders">
-                <TabButton id="watchlist" label="Watchlist" count={counts.watchlist} activeTab={activeTab} onClick={setActiveTab} />
-                <TabButton id="watched" label="Watched" count={counts.watched} activeTab={activeTab} onClick={setActiveTab} />
-                <TabButton id="rated" label="Rated" count={counts.rated} activeTab={activeTab} onClick={setActiveTab} />
-            </div>
-
-            <div
-                id={`${activeTab}-panel`}
-                role="tabpanel"
-                aria-labelledby={activeTab}
-                className="min-h-[400px]"
-            >
-                {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        {[...Array(10)].map((_, i) => (
-                            <MovieSkeleton key={i} />
-                        ))}
+            {error ? (
+                <div className="text-center py-20 bg-red-900/20 rounded-2xl border border-red-500/30">
+                    <p className="text-red-400 text-lg">{error}</p>
+                </div>
+            ) : (
+                <>
+                    <div className="flex flex-wrap gap-4 mb-10" role="tablist" aria-label="Library Folders">
+                        <TabButton id="watchlist" label="Watchlist" count={counts.watchlist} activeTab={activeTab} onClick={setActiveTab} />
+                        <TabButton id="watched" label="Watched" count={counts.watched} activeTab={activeTab} onClick={setActiveTab} />
+                        <TabButton id="rated" label="Rated" count={counts.rated} activeTab={activeTab} onClick={setActiveTab} />
                     </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                            {activeTab === 'watchlist' && data?.to_watch.map(movie => (
-                                <MovieCard key={movie.id} movie={movie} />
-                            ))}
 
-                            {activeTab === 'watched' && data?.watched.map(movie => (
-                                <MovieCard key={movie.id} movie={movie} />
-                            ))}
+                    <div
+                        id={`${activeTab}-panel`}
+                        role="tabpanel"
+                        aria-labelledby={activeTab}
+                        className="min-h-[400px]"
+                    >
+                        {loading ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                {[...Array(10)].map((_, i) => (
+                                    <MovieSkeleton key={i} />
+                                ))}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                    {activeTab === 'watchlist' && data?.to_watch.map(movie => (
+                                        <MovieCard key={movie.id} movie={movie} />
+                                    ))}
+                                    {activeTab === 'watched' && data?.watched.map(movie => (
+                                        <MovieCard key={movie.id} movie={movie} />
+                                    ))}
+                                    {activeTab === 'rated' && data?.rated_movies.map(movie => (
+                                        <div key={movie.id} className="relative group">
+                                            <MovieCard movie={movie} />
+                                            <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-2 py-1 rounded-md text-xs shadow-md">
+                                                Your rating: {movie.user_rating}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
 
-                            {activeTab === 'rated' && data?.rated_movies.map(movie => (
-                                <div key={movie.id} className="relative group">
-                                    <MovieCard movie={movie} />
-                                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-2 py-1 rounded-md text-xs shadow-md">
-                                        Your rating: {movie.user_rating}
+                                {((activeTab === 'watchlist' && data?.to_watch.length === 0) ||
+                                    (activeTab === 'watched' && data?.watched.length === 0) ||
+                                    (activeTab === 'rated' && data?.rated_movies.length === 0)) && (
+                                    <div className="text-center py-20 text-gray-500" aria-live="polite">
+                                        No movies in this list yet.
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {((activeTab === 'watchlist' && data?.to_watch.length === 0) ||
-                            (activeTab === 'watched' && data?.watched.length === 0) ||
-                            (activeTab === 'rated' && data?.rated_movies.length === 0)) && (
-                                <div className="text-center py-20 text-gray-500" aria-live="polite">
-                                    No movies in this list yet.
-                                </div>
-                            )}
-                    </>
-                )}
-            </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </>
+            )}
         </main>
     );
 }

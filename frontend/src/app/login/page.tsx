@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { signIn } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function LoginPage() {
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,8 +20,9 @@ export default function LoginPage() {
         try {
             const { user, error: authError } = await signIn(email, password);
             if (user) {
-                // Hard reload to update auth state across components
-                window.location.href = '/';
+                // Firebase's onAuthStateChanged fires automatically — just navigate.
+                // The AuthContext updates the shared user state for the whole app.
+                router.push('/');
             } else {
                 setError(authError || 'Login failed. Please check your credentials.');
             }
